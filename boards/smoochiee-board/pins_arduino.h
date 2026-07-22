@@ -88,8 +88,8 @@ static const uint8_t SCK = 18;
 #define GROVE_SDA 47
 #define GROVE_SCL 48
 
-#define SPI_SCK_PIN 13
-#define SPI_MOSI_PIN 12
+#define SPI_SCK_PIN 18
+#define SPI_MOSI_PIN 17
 #define SPI_MISO_PIN 11
 #define SPI_SS_PIN 43
 
