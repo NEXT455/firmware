@@ -70,15 +70,15 @@ static const uint8_t SCK = 18;
 #define TFT_BL -1
 #define TFT_RST 16
 #define TFT_DC 15
-#define TFT_MISO -1
+#define TFT_MISO 36
 #define TFT_MOSI 17
 #define TFT_SCLK 18
 #define TFT_CS 7
 #define TOUCH_CS 6 // SDCARD_CS to make sure SDCard works
 #define SMOOTH_FONT 1
-#define TOUCH_MOSI 12
-#define TOUCH_MISO 13
-#define TOUCH_CLK 42
+#define TOUCH_MOSI 17
+#define TOUCH_MISO 36
+#define TOUCH_CLK 18
 #define SPI_FREQUENCY 27000000
 #define SPI_READ_FREQUENCY 20000000
 #define SPI_TOUCH_FREQUENCY 2500000
