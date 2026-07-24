@@ -18,9 +18,9 @@ static const uint8_t SCL = 15;
 
 // Modified elsewhere
 static const uint8_t SS = -1;
-static const uint8_t MOSI = -1;
-static const uint8_t MISO = -1;
-static const uint8_t SCK = -1;
+static const uint8_t MOSI = 10;
+static const uint8_t MISO = 11;
+static const uint8_t SCK = 18;
 
 static const uint8_t G0 = 0;
 static const uint8_t G1 = 1;
