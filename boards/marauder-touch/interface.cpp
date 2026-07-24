@@ -18,7 +18,9 @@ IRAM_ATTR void checkPosition() { encoder->tick(); }
 void _setup_gpio() {
     bruceConfig.colorInverted = 0;
     bruceConfigPins.rotation = 0; // portrait mode for Phantom
+    if (TFT_BL >= 0) {
     pinMode(TFT_BL, OUTPUT);
+}
 #ifdef WAVESENTRY
     pinMode(ENCODER_KEY, INPUT);
     encoder = new RotaryEncoder(ENCODER_INA, ENCODER_INB, RotaryEncoder::LatchMode::TWO03);
