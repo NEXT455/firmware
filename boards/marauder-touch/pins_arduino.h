@@ -49,7 +49,7 @@ static const uint8_t G46 = 46;
 static const uint8_t ADC1 = 7;
 static const uint8_t ADC2 = 8;
 
-#define RGB_LED 21
+#define RGB_LED -1
 
 #define BAD_TX 4
 #define BAD_RX 13
@@ -74,8 +74,8 @@ static const uint8_t ADC2 = 8;
 #define CC1101_SCK_PIN SPI_SCK_PIN
 #define CC1101_MISO_PIN SPI_MISO_PIN
 
-#define NRF24_CE_PIN -1
-#define NRF24_SS_PIN -1
+#define NRF24_CE_PIN 40
+#define NRF24_SS_PIN 41
 #define NRF24_MOSI_PIN SPI_MOSI_PIN
 #define NRF24_SCK_PIN SPI_SCK_PIN
 #define NRF24_MISO_PIN SPI_MISO_PIN
@@ -90,13 +90,13 @@ static const uint8_t ADC2 = 8;
 
 #define USER_SETUP_LOADED 1
 #define ILI9341_DRIVER 1
-#define TFT_MISO 19
-#define TFT_MOSI 23
+#define TFT_MISO 11
+#define TFT_MOSI 10
 #define TFT_SCLK 18
 #define TFT_CS 17
 #define TFT_DC 16
 #define TFT_RST 5
-#define TFT_BL 32
+#define TFT_BL -1
 #define TFT_BACKLIGHT_ON HIGH
 #define SMOOTH_FONT 1
 #define SPI_FREQUENCY 40000000
@@ -114,8 +114,8 @@ static const uint8_t ADC2 = 8;
 #define GROVE_SCL 22
 
 #define SPI_SCK_PIN 18
-#define SPI_MISO_PIN 19
-#define SPI_MOSI_PIN 23
+#define SPI_MISO_PIN 11
+#define SPI_MOSI_PIN 10
 #define SPI_SS_PIN 1
 
 #endif /* Pins_Arduino_h */
