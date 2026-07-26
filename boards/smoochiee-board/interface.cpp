@@ -5,14 +5,14 @@
 ** Location: main.cpp
 ** Description:   initial setup for the device
 ***************************************************************************************/
-
+/*
 // Power handler for battery detection
 #ifdef XPOWERS_CHIP_BQ25896
 #include <Wire.h>
 #include <XPowersLib.h>
 XPowersPPM PPM;
 #endif
-
+*/
 void _setup_gpio() {
 
     pinMode(UP_BTN, INPUT); // Sets the power btn as an INPUT
