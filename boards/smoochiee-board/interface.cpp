@@ -7,7 +7,7 @@
 ***************************************************************************************/
 
 // Power handler for battery detection
-#ifdef XPOWERS_CHIP_BQ25896
+//ifdef XPOWERS_CHIP_BQ25896
 #include <Wire.h>
 #include <XPowersLib.h>
 XPowersPPM PPM;
