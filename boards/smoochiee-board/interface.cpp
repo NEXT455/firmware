@@ -35,7 +35,7 @@ void _setup_gpio() {
     bool pmu_ret = false;
     Wire.begin(GROVE_SDA, GROVE_SCL);
     pmu_ret = PPM.init(Wire, GROVE_SDA, GROVE_SCL, BQ25896_SLAVE_ADDRESS);
-    //if (pmu_ret) {
+    if (pmu_ret) {
         PPM.setSysPowerDownVoltage(3300);
         PPM.setInputCurrentLimit(3250);
         Serial.printf("getInputCurrentLimit: %d mA\n", PPM.getInputCurrentLimit());
@@ -50,26 +50,26 @@ void _setup_gpio() {
         PPM.enableCharge();
     }
 }
-//bool isCharging() {
-    // PPM.disableBatterPowerPath();
-    //return PPM.isCharging();
+bool isCharging() {
+     PPM.disableBatterPowerPath();
+    return PPM.isCharging();
 }
 
-//int getBattery() {
-    //int voltage = PPM.getBattVoltage();
-    //int percent = (voltage - 3300) * 100 / (float)(4150 - 3350);
+int getBattery() {
+    int voltage = PPM.getBattVoltage();
+    int percent = (voltage - 3300) * 100 / (float)(4150 - 3350);
 
-    //if (percent < 0) return 1;
-    //if (percent > 100) percent = 100;
+    if (percent < 0) return 1;
+    if (percent > 100) percent = 100;
 
-    //if (PPM.isCharging() && percent >= 97) {
+    if (PPM.isCharging() && percent >= 97) {
         PPM.disableBatLoad();
         percent = 95; // estimate still charging
     }
 
-    //if (PPM.isChargeDone()) { percent = 100; }
+    if (PPM.isChargeDone()) { percent = 100; }
 
-    //return percent;
+    return percent;
 }
 
 /*********************************************************************
