@@ -107,7 +107,7 @@ static const uint8_t SCK = 18;
 
 #define LED_COLOR_STEP 15
 
-#define XPOWERS_CHIP_BQ25896
+//#define XPOWERS_CHIP_BQ25896
 
 // USE BOOST ENABLE PMIC 5V OUTPUT
 #define USE_BOOST
