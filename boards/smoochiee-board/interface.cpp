@@ -48,7 +48,7 @@ void _setup_gpio() {
        // PPM.disableOTG();
        // PPM.enableCharge();
     }
-}
+//}
 bool isCharging() {
     // PPM.disableBatterPowerPath();
   //  return PPM.isCharging();
@@ -65,7 +65,7 @@ int getBattery() {
   //  if (PPM.isCharging() && percent >= 97) {
     //    PPM.disableBatLoad();
     //    percent = 95; // estimate still charging
-    }
+  //  }
 
     //if (PPM.isChargeDone()) { percent = 100; }
 
