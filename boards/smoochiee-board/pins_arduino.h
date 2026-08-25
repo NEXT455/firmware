@@ -77,7 +77,7 @@ static const uint8_t SCK = 18;
 #define TOUCH_CS 6 // SDCARD_CS to make sure SDCard works
 #define SMOOTH_FONT 1
 #define TOUCH_MOSI 17
-#define TOUCH_MISO 36
+#define TOUCH_MISO 8
 #define TOUCH_CLK 18
 #define SPI_FREQUENCY 27000000
 #define SPI_READ_FREQUENCY 20000000
