@@ -39,9 +39,9 @@ static const uint8_t SCK = 18;
 #define LED_OFF LOW
 
 #define USE_CC1101_VIA_SPI
-#define CC1101_GDO0_PIN 9
-#define CC1101_GDO2_PIN 10
-#define CC1101_SS_PIN 46
+#define CC1101_GDO0_PIN -1
+#define CC1101_GDO2_PIN -1
+#define CC1101_SS_PIN -1
 #define CC1101_MOSI_PIN SPI_MOSI_PIN
 #define CC1101_SCK_PIN SPI_SCK_PIN
 #define CC1101_MISO_PIN SPI_MISO_PIN
@@ -83,10 +83,10 @@ static const uint8_t SCK = 18;
 #define SPI_READ_FREQUENCY 20000000
 #define SPI_TOUCH_FREQUENCY 2500000
 
-#define SDCARD_CS 3
-#define SDCARD_SCK 18
-#define SDCARD_MISO 8
-#define SDCARD_MOSI 17
+#define SDCARD_CS -1
+#define SDCARD_SCK -1
+#define SDCARD_MISO -1
+#define SDCARD_MOSI -1
 
 #define GROVE_SDA 47
 #define GROVE_SCL 48
@@ -98,7 +98,7 @@ static const uint8_t SCK = 18;
 
 // RGB LED
 
-#define HAS_RGB_LED 1
+#define HAS_RGB_LED 0
 #define RGB_LED 45
 #define LED_TYPE WS2812B
 #define LED_ORDER GRB
@@ -120,9 +120,9 @@ static const uint8_t SCK = 18;
 // IO EXPANDER
 #define USE_IO_EXPANDER
 #define IO_EXPANDER_AW9523
-#define IO_EXP_GPS 13
-#define IO_EXP_MIC 4
-#define IO_EXP_VIBRO 2
+#define IO_EXP_GPS -1
+#define IO_EXP_MIC -1
+#define IO_EXP_VIBRO -1
 #define IO_EXP_CC_RX 7
 #define IO_EXP_CC_TX 12
 #endif /* Pins_Arduino_h */
