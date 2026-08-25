@@ -56,15 +56,15 @@ extern SerialDisplayClass &draw;
 extern BQ27220 bq;
 #endif
 
-#ifdef USE_BQ25896
-#include <XPowersLib.h>
-extern XPowersPPM PPM;
-#endif
+//#ifdef USE_BQ25896
+//#include <XPowersLib.h>
+//extern XPowersPPM PPM;
+//#endif
 
-#ifdef USE_BOOST /// to avoid t embed toggle otg on some codes
-#include <XPowersLib.h>
-extern XPowersPPM PPM;
-#endif
+//#ifdef USE_BOOST /// to avoid t embed toggle otg on some codes
+//#include <XPowersLib.h>
+//extern XPowersPPM PPM;
+//#endif
 
 extern int8_t interpreter_state; // -1 - stopped, 0 - background, 1 - waiting for foreground, 2 - foreground
 
