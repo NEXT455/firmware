@@ -70,7 +70,7 @@ static const uint8_t SCK = 18;
 #define TFT_BL -1
 #define TFT_RST 16
 #define TFT_DC 15
-#define TFT_MISO 36
+#define TFT_MISO -1
 #define TFT_MOSI 17
 #define TFT_SCLK 18
 #define TFT_CS 7
@@ -93,7 +93,7 @@ static const uint8_t SCK = 18;
 
 #define SPI_SCK_PIN 18
 #define SPI_MOSI_PIN 17
-#define SPI_MISO_PIN 11
+#define SPI_MISO_PIN 8
 #define SPI_SS_PIN 43
 
 // RGB LED
