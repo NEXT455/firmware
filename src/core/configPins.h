@@ -1,3 +1,11 @@
+class DummyPPM {
+public:
+    void enableOTG() {}
+    void disableOTG() {}
+    bool isCharging() { return false; }
+    int getBattery() { return 100; }
+};
+inline DummyPPM PPM;
 #pragma once
 
 #include "pins_arduino.h"
