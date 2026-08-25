@@ -6,11 +6,11 @@
 ** Description:   initial setup for the device
 ***************************************************************************************/
 // Power handler for battery detection
-#ifdef XPOWERS_CHIP_BQ25896
-#include <Wire.h>
+//#ifdef XPOWERS_CHIP_BQ25896
+//#include <Wire.h>
 //#include <XPowersLib.h>
-XPowersPPM PPM;
-#endif
+//XPowersPPM PPM;
+//#endif
 
 void _setup_gpio() {
 
@@ -52,7 +52,7 @@ void _setup_gpio() {
 bool isCharging() {
     // PPM.disableBatterPowerPath();
   //  return PPM.isCharging();
-    return false
+    return false;
 }
 
 int getBattery() {
