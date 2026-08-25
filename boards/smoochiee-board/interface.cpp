@@ -32,6 +32,7 @@ void _setup_gpio() {
     Wire.setPins(GROVE_SDA, GROVE_SCL);
     // Wire.begin();
     bool pmu_ret = false;
+                  return;
     Wire.begin(GROVE_SDA, GROVE_SCL);
     pmu_ret = PPM.init(Wire, GROVE_SDA, GROVE_SCL, BQ25896_SLAVE_ADDRESS);
     if (pmu_ret) {
