@@ -10,7 +10,8 @@ static const uint8_t RX = 2;
 static const uint8_t SDA = 47;
 static const uint8_t SCL = 48;
 
-static const uint8_t SS = 7;
+// Modified elsewhere
+static const uint8_t SS = 3;
 static const uint8_t MOSI = 17;
 static const uint8_t MISO = 8;
 static const uint8_t SCK = 18;
@@ -46,8 +47,8 @@ static const uint8_t SCK = 18;
 #define CC1101_MISO_PIN SPI_MISO_PIN
 
 #define USE_NRF24_VIA_SPI
-#define NRF24_CE_PIN 6
-#define NRF24_SS_PIN 5
+#define NRF24_CE_PIN 21
+#define NRF24_SS_PIN 14
 #define NRF24_MOSI_PIN SPI_MOSI_PIN
 #define NRF24_SCK_PIN SPI_SCK_PIN
 #define NRF24_MISO_PIN SPI_MISO_PIN
@@ -73,9 +74,11 @@ static const uint8_t SCK = 18;
 #define TFT_MOSI 17
 #define TFT_SCLK 18
 #define TFT_CS 7
-#define TOUCH_CS -1
+#define TOUCH_CS 6 // SDCARD_CS to make sure SDCard works
 #define SMOOTH_FONT 1
-
+#define TOUCH_MOSI 17
+#define TOUCH_MISO 8
+#define TOUCH_CLK 18
 #define SPI_FREQUENCY 4000000
 #define SPI_READ_FREQUENCY 2000000
 #define SPI_TOUCH_FREQUENCY 2500000
@@ -91,7 +94,9 @@ static const uint8_t SCK = 18;
 #define SPI_SCK_PIN 18
 #define SPI_MOSI_PIN 17
 #define SPI_MISO_PIN 8
-#define SPI_SS_PIN 7
+#define SPI_SS_PIN 43
+
+// RGB LED
 
 #define HAS_RGB_LED 0
 #define RGB_LED 45
@@ -102,16 +107,22 @@ static const uint8_t SCK = 18;
 
 #define LED_COLOR_STEP 15
 
+#define XPOWERS_CHIP_BQ25896
+
+// USE BOOST ENABLE PMIC 5V OUTPUT
 #define USE_BOOST
 
+// Mic#
 #define PIN_CLK 1
 #define PIN_DATA 10
 #define PIN_WS 2
 
+// IO EXPANDER
+#define USE_IO_EXPANDER
+#define IO_EXPANDER_AW9523
 #define IO_EXP_GPS -1
 #define IO_EXP_MIC -1
 #define IO_EXP_VIBRO -1
-#define IO_EXP_CC_RX -1
-#define IO_EXP_CC_TX -1
-
+#define IO_EXP_CC_RX 7
+#define IO_EXP_CC_TX 12
 #endif /* Pins_Arduino_h */
