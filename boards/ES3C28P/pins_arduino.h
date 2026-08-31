@@ -21,8 +21,7 @@ static const uint8_t TX = 43;
 static const uint8_t RX = 44;
 
 // =============================================
-// I2C Bus (shared between touch, audio codec, expansion)
-// Touch FT6336G @ 0x38, Audio ES8311 @ 0x18
+// I2C Bus (Dedicated to Audio Codec ES8311 @ 0x18 & Expansion)
 // =============================================
 #define GROVE_SDA 16
 #define GROVE_SCL 15
@@ -85,7 +84,7 @@ static const uint8_t MISO = SPI_MISO_PIN;
 #define W5500_INT_PIN -1
 
 // =============================================
-// TFT Display (ILI9341V via SPI)
+// TFT Display & Touch (ILI9341V + XPT2046 via SPI)
 // =============================================
 #define USER_SETUP_LOADED
 #define ILI9341_2_DRIVER 1
@@ -101,9 +100,13 @@ static const uint8_t MISO = SPI_MISO_PIN;
 #define TFT_BL 45  // Backlight control (HIGH = on)
 #define TFT_BACKLIGHT_ON HIGH
 #define SMOOTH_FONT 1
-#define TOUCH_CS -1 // No SPI touch, using I2C capacitive touch
+
+// Resistive Touch (XPT2046) configured on Display SPI Bus
+#define TOUCH_CS 17 // Using freed GPIO17 for XPT2046 Chip Select
+
 #define SPI_FREQUENCY 40000000
 #define SPI_READ_FREQUENCY 20000000
+#define SPI_TOUCH_FREQUENCY 2500000
 
 // =============================================
 // Display Setup
@@ -114,16 +117,10 @@ static const uint8_t MISO = SPI_MISO_PIN;
 #define BACKLIGHT 45
 
 // =============================================
-// Touch Screen (FT6336G via I2C @ 0x38)
+// Touch Screen (SPI XPT2046 Configuration)
 // =============================================
 #define HAS_TOUCH 1
-#define HAS_CAPACITIVE_TOUCH 1
-#define TOUCH_FT6336_I2C 1
-#define FT6336_I2C_ADDR 0x38
-#define FT6336_I2C_CONFIG_SDA 16
-#define FT6336_I2C_CONFIG_SCL 15
-#define FT6336_TOUCH_CONFIG_RST 18
-#define FT6336_TOUCH_CONFIG_INT 17
+#define HAS_RESISTIVE_TOUCH 1
 
 // =============================================
 // Font Sizes
@@ -154,9 +151,8 @@ static const uint8_t MISO = SPI_MISO_PIN;
 
 // =============================================
 // Audio System (ES8311 codec + I2S + FM8002E amplifier)
-// ES8311 I2C: SDA=16, SCL=15 (shared with touch)
+// ES8311 I2C: SDA=16, SCL=15
 // I2S: MCLK=4, BCLK=5, LRC=7, DOUT=8, DIN=6
-// Per LCD Wiki example: GPIO8=DOUT (ESP32→ES8311), GPIO6=DIN (ES8311→ESP32)
 // =============================================
 #define HAS_NS4168_SPKR 1 // Compatible I2S speaker interface
 #define ES8311_CODEC 1
