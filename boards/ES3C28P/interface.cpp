@@ -5,7 +5,7 @@
  * Hardware:
  *   - ESP32-S3R8 (8MB OPI PSRAM, 16MB QSPI Flash)
  *   - ILI9341V 240x320 IPS TFT (SPI)
- *   - FT6336G Capacitive Touch (I2C @ 0x38)
+ *   - XPT2046 Resistive Touch (SPI)
  *   - ES8311 Audio Codec (I2C @ 0x18) + FM8002E Amplifier
  *   - MicroSD Card (SDIO mode)
  *   - WS2812 RGB LED (GPIO42)
@@ -31,13 +31,9 @@
 #endif
 
 // =============================================
-// Touch Screen local defines
+// Touch Screen local defines (SPI - XPT2046)
 // =============================================
-#define ES3C28P_TOUCH_SDA 16
-#define ES3C28P_TOUCH_SCL 15
-#define ES3C28P_TOUCH_RST 18
-#define ES3C28P_TOUCH_INT 17
-#define ES3C28P_TOUCH_ADDR 0x38
+static bool touchInitialized = false;
 
 // =============================================
 // Audio & GPIO local defines
@@ -45,42 +41,6 @@
 #define ES3C28P_AMP_EN 1  // FM8002E amplifier enable (active LOW)
 #define ES3C28P_BTN_PIN 0 // BOOT button
 #define ES3C28P_BTN_ACT LOW
-
-// =============================================
-// Touch Screen (FT6336G via I2C)
-// =============================================
-// The FT6336G uses the same register protocol as CST816S/FT6236
-// Register 0x02: number of touch points
-// Register 0x03-0x06: touch point 1 X/Y coordinates
-#define FT6336_REG_NUM_TOUCHES 0x02
-#define FT6336_REG_TOUCH_DATA 0x03
-
-static bool touchInitialized = false;
-
-static uint8_t ft6336_read_reg(uint8_t reg) {
-    Wire.beginTransmission(ES3C28P_TOUCH_ADDR);
-    Wire.write(reg);
-    Wire.endTransmission(false);
-    Wire.requestFrom(ES3C28P_TOUCH_ADDR, 1);
-    if (Wire.available()) return Wire.read();
-    return 0;
-}
-
-static bool ft6336_read_touch(int16_t &x, int16_t &y) {
-    uint8_t touches = ft6336_read_reg(FT6336_REG_NUM_TOUCHES);
-    if (touches == 0 || touches > 2) return false;
-
-    uint8_t data[4];
-    Wire.beginTransmission(ES3C28P_TOUCH_ADDR);
-    Wire.write(FT6336_REG_TOUCH_DATA);
-    Wire.endTransmission(false);
-    Wire.requestFrom(ES3C28P_TOUCH_ADDR, 4);
-    for (int i = 0; i < 4; i++) { data[i] = Wire.read(); }
-
-    x = ((data[0] & 0x0F) << 8) | data[1];
-    y = ((data[2] & 0x0F) << 8) | data[3];
-    return true;
-}
 
 /***************************************************************************************
 ** Function name: _setup_gpio()
@@ -92,21 +52,12 @@ void _setup_gpio() {
     SD.setPins(PIN_SD_CLK, PIN_SD_CMD, PIN_SD_D0);
 #endif
 
-    // ---- Touch Screen Init (FT6336G) ----
-    // Reset touch controller
-    pinMode(ES3C28P_TOUCH_RST, OUTPUT);
-    digitalWrite(ES3C28P_TOUCH_RST, LOW);
-    delay(10);
-    digitalWrite(ES3C28P_TOUCH_RST, HIGH);
-    delay(300);
-
-    // Touch interrupt pin
-    pinMode(ES3C28P_TOUCH_INT, INPUT);
-
-    // Initialize I2C bus (shared with audio codec ES8311)
-    setSysI2CBus(&Wire);
-    Wire.begin(ES3C28P_TOUCH_SDA, ES3C28P_TOUCH_SCL);
+    // ---- Touch Screen Init (SPI XPT2046) ----
     touchInitialized = true;
+
+    // Initialize I2C bus (shared with audio codec ES8311, without GPIO16)
+    setSysI2CBus(&Wire);
+    Wire.begin(15, 15);
 
     // ---- Amplifier: disable by default (active LOW, so HIGH = disabled) ----
     pinMode(ES3C28P_AMP_EN, OUTPUT);
@@ -184,30 +135,13 @@ void InputHandler(void) {
     static long tm = 0;
 
     if (millis() - tm > 200 || LongPress) {
-        // ---- Touch Screen Input ----
+        // ---- Touch Screen Input (SPI XPT2046) ----
         if (touchInitialized) {
-            int16_t raw_x, raw_y;
-            if (ft6336_read_touch(raw_x, raw_y)) {
+            uint16_t t_x = 0, t_y = 0;
+            bool touched = tft.getTouch(&t_x, &t_y);
+
+            if (touched) {
                 tm = millis();
-
-                // Apply rotation transformation
-                int16_t t_x = raw_x;
-                int16_t t_y = raw_y;
-
-                if (bruceConfigPins.rotation == 1) {
-                    // Landscape: swap and mirror
-                    t_x = raw_y;
-                    t_y = (TFT_WIDTH - 1) - raw_x;
-                } else if (bruceConfigPins.rotation == 2) {
-                    // Portrait inverted
-                    t_x = (TFT_WIDTH - 1) - raw_x;
-                    t_y = (TFT_HEIGHT - 1) - raw_y;
-                } else if (bruceConfigPins.rotation == 3) {
-                    // Landscape inverted
-                    t_x = (TFT_HEIGHT - 1) - raw_y;
-                    t_y = raw_x;
-                }
-                // rotation == 0: portrait default, no transform needed
 
                 if (!wakeUpScreen()) AnyKeyPress = true;
                 else return;
