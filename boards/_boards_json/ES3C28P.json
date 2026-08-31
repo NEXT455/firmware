@@ -2,8 +2,8 @@
   "build": {
     "arduino": {
       "ldscript": "esp32s3_out.ld",
-      "partitions": "default_16MB.csv",
-      "memory_type": "dio_opi"
+      "partitions": "partitions_8Mb.csv",
+      "memory_type": "qio_qspi"
     },
     "core": "esp32",
     "extra_flags": [
@@ -16,7 +16,7 @@
     ],
     "f_cpu": "240000000L",
     "f_flash": "80000000L",
-    "flash_mode": "dio",
+    "flash_mode": "qio",
     "hwids": [
       [
         "0X303A",
@@ -39,9 +39,9 @@
   ],
   "name": "ES3C28P 2.8\" ESP32-S3 Display",
   "upload": {
-    "flash_size": "16MB",
+    "flash_size": "8MB",
     "maximum_ram_size": 327680,
-    "maximum_size": 16777216,
+    "maximum_size": 8388608,
     "require_upload_port": true,
     "speed": 921600
   },
