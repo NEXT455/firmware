@@ -3,9 +3,9 @@
  * Board interface implementation for Bruce firmware
  *
  * Hardware:
- *   - ESP32-S3R8 (8MB OPI PSRAM, 16MB QSPI Flash)
+ *   - ESP32-S3 (2MB QSPI PSRAM, 8MB QSPI Flash) [N8R2 Model]
  *   - ILI9341V 240x320 IPS TFT (SPI)
- *   - XPT2046 Resistive Touch (SPI)
+ *   - XPT2046 Resistive Touch (SPI via GPIO17 CS)
  *   - ES8311 Audio Codec (I2C @ 0x18) + FM8002E Amplifier
  *   - MicroSD Card (SDIO mode)
  *   - WS2812 RGB LED (GPIO42)
@@ -55,9 +55,9 @@ void _setup_gpio() {
     // ---- Touch Screen Init (SPI XPT2046) ----
     touchInitialized = true;
 
-    // Initialize I2C bus (shared with audio codec ES8311, without GPIO16)
+    // Initialize I2C bus (shared with audio codec ES8311: SDA=16, SCL=15)
     setSysI2CBus(&Wire);
-    Wire.begin(15, 15);
+    Wire.begin(16, 15);
 
     // ---- Amplifier: disable by default (active LOW, so HIGH = disabled) ----
     pinMode(ES3C28P_AMP_EN, OUTPUT);
