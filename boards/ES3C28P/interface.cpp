@@ -86,7 +86,7 @@ bool isCharging() { return false; }
 
 } 
 
-void InputHandler(void *arg) {
+void taskInputHandler(void *arg) {
     static long tm = 0;
 
     while (true) {
