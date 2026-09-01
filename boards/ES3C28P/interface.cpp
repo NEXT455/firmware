@@ -17,11 +17,8 @@ static bool touchInitialized = false;
 void _setup_gpio() {
     touchInitialized = true;
 
-    // NRF24 GPIO Assignments (Matching ES3C28P.ini)
-
-    // IR GPIO Assignments (Matching ES3C28P.ini)
-    bruceConfigPins.irRx = IR_RX_PIN;
-    bruceConfigPins.irTx = IR_TX_PIN;
+    bruceConfigPins.irRx = (gpio_num_t)IR_RX_PIN;
+    bruceConfigPins.irTx = (gpio_num_t)IR_TX_PIN;
 
     Serial.begin(115200);
 }
@@ -83,7 +80,7 @@ void checkReboot() {
 
 bool isCharging() { return false; }
 
-void taskInputHandler(void *arg) {
+extern "C" void taskInputHandler(void *arg) {
     static long tm = 0;
 
     while (true) {
