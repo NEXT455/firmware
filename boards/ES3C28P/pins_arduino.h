@@ -18,7 +18,7 @@ static const uint8_t TX = 43;
 static const uint8_t RX = 44;
 
 // =============================================
-// Main SPI Bus (Dedicated to NRF24 Module)
+// Main SPI Bus & RFID SS Aliases
 // =============================================
 #define SPI_SCK_PIN 14
 #define SPI_MOSI_PIN 3
@@ -64,7 +64,7 @@ static const uint8_t MISO = SPI_MISO_PIN;
 #define HAS_RESISTIVE_TOUCH 1
 
 // =============================================
-// NRF24L01 2.4GHz Radio (Using Safe Pins - No 5, 6, 16)
+// NRF24L01 2.4GHz Radio (Safe Pins - No 5, 6, 16)
 // =============================================
 #define USE_NRF24_VIA_SPI
 #define NRF24_CE_PIN 1      
@@ -74,7 +74,7 @@ static const uint8_t MISO = SPI_MISO_PIN;
 #define NRF24_MISO_PIN SPI_MISO_PIN
 
 // =============================================
-// Infrared (IR TX / RX) - (Excluding 5, 6, 16 completely)
+// Infrared (IR TX / RX) - (Excluding 5, 6, 16)
 // =============================================
 #define TXLED 4     
 #define RXLED 7     
@@ -91,7 +91,7 @@ static const uint8_t MISO = SPI_MISO_PIN;
 #define RF_RX_PINS '{{"GPIO7", 7}, {"GPIO14", 14}, {"GPIO21", 21}}'
 
 // =============================================
-// Buttons & Battery (Pins 5, 6, 16 strictly avoided)
+// Buttons & Battery
 // =============================================
 #define HAS_BTN 1
 #define BTN_ALIAS "\"Boot\""
