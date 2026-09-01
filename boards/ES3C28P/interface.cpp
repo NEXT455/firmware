@@ -17,9 +17,13 @@ static bool touchInitialized = false;
 void _setup_gpio() {
     touchInitialized = true;
 
-    bruceConfigPins.rfModule = NONE_SPI_MODULE;
-    bruceConfigPins.irRx = RXLED;
-    bruceConfigPins.irTx = TXLED;
+    // NRF24 GPIO Assignments (Matching ES3C28P.ini)
+    bruceConfigPins.rfCs = NRF24_CS_PIN;
+    bruceConfigPins.rfCe = NRF24_CE_PIN;
+
+    // IR GPIO Assignments (Matching ES3C28P.ini)
+    bruceConfigPins.irRx = IR_RX_PIN;
+    bruceConfigPins.irTx = IR_TX_PIN;
 
     Serial.begin(115200);
 }
