@@ -9,30 +9,16 @@
 #endif
 
 // =============================================
-// USB
+// USB & UART0
 // =============================================
 #define USB_VID 0x303a
 #define USB_PID 0x1001
 
-// =============================================
-// UART0
-// =============================================
 static const uint8_t TX = 43;
 static const uint8_t RX = 44;
 
 // =============================================
-// I2C Bus (Dedicated to Audio Codec ES8311 @ 0x18 & Expansion)
-// =============================================
-#define GROVE_SDA 16
-#define GROVE_SCL 15
-#define SYS_I2C_SDA GROVE_SDA
-#define SYS_I2C_SCL GROVE_SCL
-static const uint8_t SDA = GROVE_SDA;
-static const uint8_t SCL = GROVE_SCL;
-
-// =============================================
-// Main SPI Bus (exposed on expansion pins)
-// Used for CC1101, NRF24, W5500 external modules
+// Main SPI Bus (Dedicated to NRF24 Module)
 // =============================================
 #define SPI_SCK_PIN 14
 #define SPI_MOSI_PIN 3
@@ -45,50 +31,11 @@ static const uint8_t SCK = SPI_SCK_PIN;
 static const uint8_t MISO = SPI_MISO_PIN;
 
 // =============================================
-// SD Card - Uses SDIO mode (not SPI)
-// SD_CLK=38, SD_CMD=40, SD_D0=39, SD_D1=41, SD_D2=48, SD_D3=47
-// =============================================
-#define SDCARD_CS -1
-#define SDCARD_SCK -1
-#define SDCARD_MISO -1
-#define SDCARD_MOSI -1
-
-// =============================================
-// CC1101 Sub-GHz Radio (external module via expansion pins)
-// =============================================
-#define USE_CC1101_VIA_SPI
-#define CC1101_GDO0_PIN 2
-#define CC1101_SS_PIN 21
-#define CC1101_MOSI_PIN SPI_MOSI_PIN
-#define CC1101_SCK_PIN SPI_SCK_PIN
-#define CC1101_MISO_PIN SPI_MISO_PIN
-
-// =============================================
-// NRF24L01 2.4GHz Radio (external module via expansion pins)
-// =============================================
-#define USE_NRF24_VIA_SPI
-#define NRF24_CE_PIN 3
-#define NRF24_SS_PIN 21
-#define NRF24_MOSI_PIN SPI_MOSI_PIN
-#define NRF24_SCK_PIN SPI_SCK_PIN
-#define NRF24_MISO_PIN SPI_MISO_PIN
-
-// =============================================
-// W5500 Ethernet (external module via expansion pins)
-// =============================================
-#define USE_W5500_VIA_SPI
-#define W5500_SS_PIN -1
-#define W5500_MOSI_PIN SPI_MOSI_PIN
-#define W5500_SCK_PIN SPI_SCK_PIN
-#define W5500_MISO_PIN SPI_MISO_PIN
-#define W5500_INT_PIN -1
-
-// =============================================
-// TFT Display & Touch (ILI9341V + XPT2046 via SPI)
+// TFT Display & Touch (ILI9341 + XPT2046)
 // =============================================
 #define USER_SETUP_LOADED
 #define ILI9341_2_DRIVER 1
-#define TFT_INVERSION_ON 1 // Fix inverted colors
+#define TFT_INVERSION_ON 1
 #define TFT_WIDTH 240
 #define TFT_HEIGHT 320
 #define TFT_MISO 13
@@ -96,123 +43,73 @@ static const uint8_t MISO = SPI_MISO_PIN;
 #define TFT_SCLK 12
 #define TFT_CS 10
 #define TFT_DC 46
-#define TFT_RST -1 // Connected to CHIP_PU (shared with board reset)
-#define TFT_BL 45  // Backlight control (HIGH = on)
+#define TFT_RST -1 
+#define TFT_BL 45  
 #define TFT_BACKLIGHT_ON HIGH
 #define SMOOTH_FONT 1
 
-// Resistive Touch (XPT2046) configured on Display SPI Bus
-#define TOUCH_CS 17 // Using freed GPIO17 for XPT2046 Chip Select
+#define TOUCH_CS 17 
 
 #define SPI_FREQUENCY 40000000
 #define SPI_READ_FREQUENCY 20000000
-#define SPI_TOUCH_FREQUENCY 2500000
+#define SPI_TOUCH_FREQUENCY 2500500
 
-// =============================================
-// Display Setup
-// =============================================
 #define HAS_SCREEN 1
-#define ROTATION 1 // Landscape mode (320x240)
+#define ROTATION 1 
 #define MINBRIGHT 1
 #define BACKLIGHT 45
 
-// =============================================
-// Touch Screen (SPI XPT2046 Configuration)
-// =============================================
 #define HAS_TOUCH 1
 #define HAS_RESISTIVE_TOUCH 1
 
 // =============================================
-// Font Sizes
+// NRF24L01 2.4GHz Radio (Using Safe Pins - No 5, 6, 16)
 // =============================================
-#define FP 1
-#define FM 2
-#define FG 3
+#define USE_NRF24_VIA_SPI
+#define NRF24_CE_PIN 1      // تم استخدام البن 1 الآمن
+#define NRF24_SS_PIN 21
+#define NRF24_MOSI_PIN SPI_MOSI_PIN
+#define NRF24_SCK_PIN SPI_SCK_PIN
+#define NRF24_MISO_PIN SPI_MISO_PIN
 
 // =============================================
-// RGB LED (WS2812 NeoPixel)
+// Infrared (IR TX / RX) - (Excluding 5, 6, 16 completely)
 // =============================================
-#define HAS_RGB_LED 1
-#define RGB_LED 42
-#define LED_TYPE WS2812B
-#define LED_ORDER GRB
-#define LED_TYPE_IS_RGBW 0
-#define LED_COUNT 1
-#define LED_COLOR_STEP 5
-
-// =============================================
-// Buttons
-// =============================================
-#define HAS_BTN 1
-#define BTN_ALIAS "\"Boot\""
-#define BTN_PIN 0 // BOOT button
-#define BTN_ACT LOW
-#define SEL_BTN 0 // BOOT button used as Select
-
-// =============================================
-// Audio System (ES8311 codec + I2S + FM8002E amplifier)
-// ES8311 I2C: SDA=16, SCL=15
-// I2S: MCLK=4, BCLK=5, LRC=7, DOUT=8, DIN=6
-// =============================================
-#define HAS_NS4168_SPKR 1 // Compatible I2S speaker interface
-#define ES8311_CODEC 1
-#define ES8311_ADDR 0x18
-#define I2S_MCLK_PIN 4 // Master clock
-#define BCLK 5         // Bit clock
-#define WCLK 7         // Word clock (LRC)
-#define DOUT 8         // Data out (ESP32 → ES8311 SDIN for playback)
-#define MCLK 4         // Alias for I2S_MCLK_PIN
-#define AMP_EN_PIN 1   // FM8002E amplifier enable (active LOW)
-
-// Microphone (via ES8311 ADC)
-#define MIC_SPM1423 1
-#define PIN_CLK 7 // I2S WS/LRC for mic (used as ws pin in std I2S mode)
-#define I2S_SCLK_PIN 5
-#define I2S_DATA_PIN 6 // I2S DIN (ES8311 SDOUT → ESP32 for recording)
-#define PIN_DATA 6
-
-// =============================================
-// Battery ADC
-// =============================================
-#define ANALOG_BAT_PIN 9
-#define ANALOG_BAT_MULTIPLIER 2.0f // Voltage divider: multiply ADC by 2
-
-// =============================================
-// Infrared (external, via expansion pins)
-// =============================================
-#define TXLED 2 // IR TX default (expansion GPIO2)
-#define RXLED 3 // IR RX default (expansion GPIO3)
+#define TXLED 4     // تم تحويل الإرسال إلى البن 4
+#define RXLED 7     // تم تحويل الاستقبال إلى البن 7
 #define LED_ON HIGH
 #define LED_OFF LOW
 
-#define IR_TX_PINS '{{"GPIO2", 2}, {"GPIO3", 3}, {"GPIO14", 14}, {"GPIO21", 21}}'
-#define IR_RX_PINS '{{"GPIO2", 2}, {"GPIO3", 3}, {"GPIO14", 14}, {"GPIO21", 21}}'
+#define IR_TX_PINS '{{"GPIO4", 4}, {"GPIO14", 14}, {"GPIO21", 21}}'
+#define IR_RX_PINS '{{"GPIO7", 7}, {"GPIO14", 14}, {"GPIO21", 21}}'
 
 // =============================================
-// RF (external, via expansion pins)
+// RF Pins Maps
 // =============================================
-#define RF_TX_PINS '{{"GPIO2", 2}, {"GPIO3", 3}, {"GPIO14", 14}, {"GPIO21", 21}}'
-#define RF_RX_PINS '{{"GPIO2", 2}, {"GPIO3", 3}, {"GPIO14", 14}, {"GPIO21", 21}}'
+#define RF_TX_PINS '{{"GPIO4", 4}, {"GPIO14", 14}, {"GPIO21", 21}}'
+#define RF_RX_PINS '{{"GPIO7", 7}, {"GPIO14", 14}, {"GPIO21", 21}}'
 
 // =============================================
-// Serial (GPS) dedicated pins
+// Buttons & Battery (Pins 5, 6, 16 strictly avoided)
+// =============================================
+#define HAS_BTN 1
+#define BTN_ALIAS "\"Boot\""
+#define BTN_PIN 0 
+#define BTN_ACT LOW
+#define SEL_BTN 0 
+
+#define ANALOG_BAT_PIN 9
+#define ANALOG_BAT_MULTIPLIER 2.0f 
+
+// =============================================
+// Serial & Deep Sleep
 // =============================================
 #define SERIAL_TX 43
 #define SERIAL_RX 44
 #define GPS_SERIAL_TX SERIAL_TX
 #define GPS_SERIAL_RX SERIAL_RX
 
-// =============================================
-// BadUSB (USB HID)
-// =============================================
-#define USB_as_HID 1
-#define BAD_TX GROVE_SDA
-#define BAD_RX GROVE_SCL
-
-// =============================================
-// Deep Sleep
-// =============================================
-#define DEEPSLEEP_WAKEUP_PIN 0 // BOOT button
+#define DEEPSLEEP_WAKEUP_PIN 0 
 #define DEEPSLEEP_PIN_ACT LOW
 
 #endif /* Pins_Arduino_h */
