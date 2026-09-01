@@ -71,6 +71,8 @@ void powerOff() {
 
 void goToDeepSleep() { powerOff(); }
 
+} 
+
 void checkReboot() {
     int c = 0;
     while (digitalRead(ES3C28P_BTN_PIN) == ES3C28P_BTN_ACT) {
@@ -82,8 +84,6 @@ void checkReboot() {
     }
 }
 
-} 
-
 bool isCharging() { return false; }
 
 void taskInputHandler(void *arg) {
@@ -93,7 +93,7 @@ void taskInputHandler(void *arg) {
         if (millis() - tm > 200 || LongPress) {
             if (touchInitialized) {
                 uint16_t t_x = 0, t_y = 0;
-                bool touched = display.getTouch(&t_x, &t_y);
+                bool touched = tft.getTouch(&t_x, &t_y);
 
                 if (touched) {
                     tm = millis();
