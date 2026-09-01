@@ -62,14 +62,13 @@ void _setBrightness(uint8_t brightval) {
     }
 }
 
+} 
+
 void powerOff() {
     analogWrite(TFT_BL, 0);
-    tft.writecommand(0x10); 
     esp_sleep_enable_ext0_wakeup((gpio_num_t)ES3C28P_BTN_PIN, ES3C28P_BTN_ACT);
     esp_deep_sleep_start();
 }
-
-} 
 
 void goToDeepSleep() { powerOff(); }
 
@@ -93,7 +92,7 @@ void taskInputHandler(void *arg) {
         if (millis() - tm > 200 || LongPress) {
             if (touchInitialized) {
                 uint16_t t_x = 0, t_y = 0;
-                bool touched = display.getTouch(&t_x, &t_y);
+                bool touched = tft.getTouch(&t_x, &t_y);
 
                 if (touched) {
                     tm = millis();
