@@ -24,6 +24,7 @@ static const uint8_t RX = 44;
 #define SPI_MOSI_PIN 3
 #define SPI_MISO_PIN 2
 #define SPI_SS_PIN 21
+#define SPI_SS2 21
 
 static const uint8_t SS = SPI_SS_PIN;
 static const uint8_t MOSI = SPI_MOSI_PIN;
@@ -66,7 +67,7 @@ static const uint8_t MISO = SPI_MISO_PIN;
 // NRF24L01 2.4GHz Radio (Using Safe Pins - No 5, 6, 16)
 // =============================================
 #define USE_NRF24_VIA_SPI
-#define NRF24_CE_PIN 1      // تم استخدام البن 1 الآمن
+#define NRF24_CE_PIN 1      
 #define NRF24_SS_PIN 21
 #define NRF24_MOSI_PIN SPI_MOSI_PIN
 #define NRF24_SCK_PIN SPI_SCK_PIN
@@ -75,8 +76,8 @@ static const uint8_t MISO = SPI_MISO_PIN;
 // =============================================
 // Infrared (IR TX / RX) - (Excluding 5, 6, 16 completely)
 // =============================================
-#define TXLED 4     // تم تحويل الإرسال إلى البن 4
-#define RXLED 7     // تم تحويل الاستقبال إلى البن 7
+#define TXLED 4     
+#define RXLED 7     
 #define LED_ON HIGH
 #define LED_OFF LOW
 
