@@ -82,9 +82,9 @@ void checkReboot() {
     }
 }
 
-bool isCharging() { return false; }
-
 } 
+
+bool isCharging() { return false; }
 
 void taskInputHandler(void *arg) {
     static long tm = 0;
@@ -93,7 +93,7 @@ void taskInputHandler(void *arg) {
         if (millis() - tm > 200 || LongPress) {
             if (touchInitialized) {
                 uint16_t t_x = 0, t_y = 0;
-                bool touched = tft.getTouch(&t_x, &t_y);
+                bool touched = display.getTouch(&t_x, &t_y);
 
                 if (touched) {
                     tm = millis();
