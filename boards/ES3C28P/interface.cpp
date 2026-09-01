@@ -80,6 +80,10 @@ void checkReboot() {
 
 bool isCharging() { return false; }
 
+extern "C" void InputHandler() {
+    // Stub function required by Bruce linker
+}
+
 extern "C" void taskInputHandler(void *arg) {
     static long tm = 0;
 
