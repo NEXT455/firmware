@@ -18,8 +18,6 @@ void _setup_gpio() {
     touchInitialized = true;
 
     // NRF24 GPIO Assignments (Matching ES3C28P.ini)
-    bruceConfigPins.rfCs = NRF24_CS_PIN;
-    bruceConfigPins.rfCe = NRF24_CE_PIN;
 
     // IR GPIO Assignments (Matching ES3C28P.ini)
     bruceConfigPins.irRx = IR_RX_PIN;
