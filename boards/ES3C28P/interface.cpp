@@ -14,12 +14,10 @@
 
 static bool touchInitialized = false;
 
-extern "C" {
-
 void _setup_gpio() {
     touchInitialized = true;
 
-    bruceConfigPins.rfModule = NRF24_SPI_MODULE;
+    bruceConfigPins.rfModule = NRF24L01_SPI_MODULE;
     bruceConfigPins.irRx = RXLED;
     bruceConfigPins.irTx = TXLED;
 
@@ -52,8 +50,6 @@ int getBattery() {
 
     return percent;
 }
-
-} 
 
 void _setBrightness(uint8_t brightval) {
     if (brightval == 0) {
