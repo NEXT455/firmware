@@ -9,19 +9,17 @@
 #include <globals.h>
 #include <interface.h>
 
-#define ES3C28P_BTN_PIN 0 // BOOT button
+#define ES3C28P_BTN_PIN 0 
 #define ES3C28P_BTN_ACT LOW
 
 static bool touchInitialized = false;
 
-// دوال الـ HAL الأساسية بلغة C لتجنب مشاكل الربط
 extern "C" {
 
 void _setup_gpio() {
     touchInitialized = true;
 
-    bruceConfigPins.rfModule = CC1101_SPI_MODULE;
-    bruceConfigPins.rfidModule = PN532_I2C_MODULE;
+    bruceConfigPins.rfModule = NRF24_SPI_MODULE;
     bruceConfigPins.irRx = RXLED;
     bruceConfigPins.irTx = TXLED;
 
@@ -66,7 +64,7 @@ void _setBrightness(uint8_t brightval) {
 
 void powerOff() {
     analogWrite(TFT_BL, 0);
-    tft.writecommand(0x10); // SLPIN
+    tft.writecommand(0x10); 
     esp_sleep_enable_ext0_wakeup((gpio_num_t)ES3C28P_BTN_PIN, ES3C28P_BTN_ACT);
     esp_deep_sleep_start();
 }
@@ -86,9 +84,8 @@ void checkReboot() {
 
 bool isCharging() { return false; }
 
-} // نهاية الـ extern "C"
+} 
 
-// دالة InputHandler المعرفة كـ C++ صريحة لتطابق التوقيع المطلوب تماماً
 void InputHandler(void *arg) {
     static long tm = 0;
 
