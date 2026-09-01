@@ -69,9 +69,9 @@ void powerOff() {
     esp_deep_sleep_start();
 }
 
-void goToDeepSleep() { powerOff(); }
-
 } 
+
+void goToDeepSleep() { powerOff(); }
 
 void checkReboot() {
     int c = 0;
@@ -93,7 +93,7 @@ void taskInputHandler(void *arg) {
         if (millis() - tm > 200 || LongPress) {
             if (touchInitialized) {
                 uint16_t t_x = 0, t_y = 0;
-                bool touched = tft.getTouch(&t_x, &t_y);
+                bool touched = display.getTouch(&t_x, &t_y);
 
                 if (touched) {
                     tm = millis();
