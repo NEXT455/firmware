@@ -53,6 +53,8 @@ int getBattery() {
     return percent;
 }
 
+} 
+
 void _setBrightness(uint8_t brightval) {
     if (brightval == 0) {
         analogWrite(TFT_BL, 0);
@@ -61,8 +63,6 @@ void _setBrightness(uint8_t brightval) {
         analogWrite(TFT_BL, bl);
     }
 }
-
-} 
 
 void powerOff() {
     analogWrite(TFT_BL, 0);
@@ -92,7 +92,7 @@ void taskInputHandler(void *arg) {
         if (millis() - tm > 200 || LongPress) {
             if (touchInitialized) {
                 uint16_t t_x = 0, t_y = 0;
-                bool touched = tft.getTouch(&t_x, &t_y);
+                bool touched = tft.getTouchX() > 0 || tft.getTouchY() > 0;
 
                 if (touched) {
                     tm = millis();
@@ -100,8 +100,8 @@ void taskInputHandler(void *arg) {
                     if (!wakeUpScreen()) AnyKeyPress = true;
                     else continue;
 
-                    touchPoint.x = t_x;
-                    touchPoint.y = t_y;
+                    touchPoint.x = tft.getTouchX();
+                    touchPoint.y = tft.getTouchY();
                     touchPoint.pressed = true;
                     touchHeatMap(touchPoint);
                 }
