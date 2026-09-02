@@ -228,8 +228,12 @@ void setup_gpio() {
     // init setup from /ports/*/interface.h
     _setup_gpio();
 
+    Serial.println("CP3a"); // ES3C28P debug: right after board _setup_gpio()
+
     // Smoochiee v2 uses a AW9325 tro control GPS, MIC, Vibro and CC1101 RX/TX powerlines
     ioExpander.init(IO_EXPANDER_ADDRESS, &Wire);
+
+    Serial.println("CP3b"); // ES3C28P debug: right after ioExpander.init()
 
     initCC1101once(acquireSPIBus(
         bruceConfigPins.CC1101_bus.sck, bruceConfigPins.CC1101_bus.miso, bruceConfigPins.CC1101_bus.mosi
@@ -237,6 +241,8 @@ void setup_gpio() {
     // acquireSPIBus() returns nullptr when these pins have no hardware controller left (e.g.
     // ARDUINO_M5STICK_C_PLUS and others that don't share SPI with the display/SD/aux bus);
     // initCC1101once(NULL) lets the driver fall back to managing the default SPI object itself.
+
+    Serial.println("CP3c"); // ES3C28P debug: right after initCC1101once()
 }
 
 /*********************************************************************
@@ -478,8 +484,10 @@ void setup() {
     bruceConfig.bright = 100; // theres is no value yet
     bruceConfigPins.rotation = ROTATION;
     setup_gpio();
+    Serial.println("CP3"); // ES3C28P debug: right after setup_gpio() returns
 #if defined(HAS_SCREEN)
     tft.init();
+    Serial.println("CP4"); // ES3C28P debug: right after tft.init() returns
     tft.setRotation(bruceConfigPins.rotation);
     tft.fillScreen(TFT_BLACK);
     // bruceConfig is not read yet.. just to show something on screen due to long boot time
