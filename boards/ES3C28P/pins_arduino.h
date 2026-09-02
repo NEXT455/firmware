@@ -30,6 +30,8 @@ static const uint8_t SS = SPI_SS_PIN;
 static const uint8_t MOSI = SPI_MOSI_PIN;
 static const uint8_t SCK = SPI_SCK_PIN;
 static const uint8_t MISO = SPI_MISO_PIN;
+static const uint8_t SDA = 8;
+static const uint8_t SCL = 9;
 
 // =============================================
 // TFT Display & Touch (ILI9341 + XPT2046)
