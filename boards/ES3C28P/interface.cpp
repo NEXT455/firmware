@@ -1,5 +1,12 @@
 /*
  * ES3C28P - Board interface implementation for Bruce firmware
+ *
+ * ملاحظة مهمة:
+ * لا تضيف هنا أي أسطر لتعريف بنات NRF24 أو CC1101 أو TFT أو Touch
+ * (مثل bruceConfigPins.NRF24_bus.cs أو bruceConfigPins.tftMosi).
+ * هذي البنات تتقرأ تلقائيًا من الـ -D فلاجز الموجودة بملف ES3C28P.ini
+ * عبر core/configPins.h (اللي يستخدم #ifdef على أسماء مثل NRF24_SCK_PIN).
+ * هذا الملف مسؤول بس عن المنطق الخاص بالجهاز: الأزرار، الباطري، النوم، واللمس.
  */
 
 #include "core/bus_HAL.h"
@@ -9,7 +16,7 @@
 #include <globals.h>
 #include <interface.h>
 
-#define ES3C28P_BTN_PIN 0 
+#define ES3C28P_BTN_PIN 0
 #define ES3C28P_BTN_ACT LOW
 
 static bool touchInitialized = false;
@@ -17,6 +24,7 @@ static bool touchInitialized = false;
 void _setup_gpio() {
     touchInitialized = true;
 
+    // IR pins: مأخوذة من IR_RX_PIN / IR_TX_PIN المعرفة بالـ .ini
     bruceConfigPins.irRx = (gpio_num_t)IR_RX_PIN;
     bruceConfigPins.irTx = (gpio_num_t)IR_TX_PIN;
 
