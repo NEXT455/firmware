@@ -24,11 +24,14 @@ static bool touchInitialized = false;
 void _setup_gpio() {
     touchInitialized = true;
 
+    Serial.begin(115200);
+    Serial.println("CP1");
+
     // IR pins: مأخوذة من IR_RX_PIN / IR_TX_PIN المعرفة بالـ .ini
     bruceConfigPins.irRx = (gpio_num_t)IR_RX_PIN;
     bruceConfigPins.irTx = (gpio_num_t)IR_TX_PIN;
 
-    Serial.begin(115200);
+    Serial.println("CP2");
 }
 
 void _post_setup_gpio() {
