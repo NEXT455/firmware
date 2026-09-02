@@ -83,14 +83,14 @@ static const uint8_t SCL = 9;
 #define LED_ON HIGH
 #define LED_OFF LOW
 
-#define IR_TX_PINS {{4, 4}, {14, 14}, {21, 21}}
-#define IR_RX_PINS {{7, 7}, {14, 14}, {21, 21}}
+#define IR_TX_PINS {{"GPIO4", 4}, {"GPIO14", 14}, {"GPIO21", 21}}
+#define IR_RX_PINS {{"GPIO7", 7}, {"GPIO14", 14}, {"GPIO21", 21}}
 
 // =============================================
 // RF Pins Maps
 // =============================================
-#define RF_TX_PINS {{4, 4}, {14, 14}, {21, 21}}
-#define RF_RX_PINS {{7, 7}, {14, 14}, {21, 21}}
+#define RF_TX_PINS {{"GPIO4", 4}, {"GPIO14", 14}, {"GPIO21", 21}}
+#define RF_RX_PINS {{"GPIO7", 7}, {"GPIO14", 14}, {"GPIO21", 21}}
 
 // =============================================
 // Buttons & Battery
