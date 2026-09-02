@@ -99,7 +99,7 @@ void taskInputHandler(void *arg) {
         if (millis() - tm > 200 || LongPress) {
             if (touchInitialized) {
                 uint16_t t_x = 0, t_y = 0;
-                bool touched = tft.getTouchX() > 0 || tft.getTouchY() > 0;
+                bool touched = tft.getTouch(&t_x, &t_y);
 
                 if (touched) {
                     tm = millis();
@@ -107,8 +107,8 @@ void taskInputHandler(void *arg) {
                     if (!wakeUpScreen()) AnyKeyPress = true;
                     else continue;
 
-                    touchPoint.x = tft.getTouchX();
-                    touchPoint.y = tft.getTouchY();
+                    touchPoint.x = t_x;
+                    touchPoint.y = t_y;
                     touchPoint.pressed = true;
                     touchHeatMap(touchPoint);
                 }
