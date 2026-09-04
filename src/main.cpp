@@ -529,6 +529,7 @@ void setup() {
     // so re-apply the stored brightness after that stage completes.
     setBrightness(bruceConfig.bright, false);
     // end of post gpio begin
+    Serial.println("CP5"); // ES3C28P debug: after _post_setup_gpio + setBrightness
 
     // #ifndef USE_TFT_eSPI_TOUCH
     // This task keeps running all the time, will never stop
@@ -540,6 +541,7 @@ void setup() {
         2,                             // Task priority (0 to 3), loopTask has priority 2.
         &xHandle                       // Task handle (not used)
     );
+    Serial.println("CP6"); // ES3C28P debug: after taskInputHandler xTaskCreate
 #ifdef HAS_ENCODER
     // Dedicated encoder sampling task, higher priority than loopTask so a
     // busy render/redraw pass can never delay reading the A/B lines.
@@ -556,9 +558,12 @@ void setup() {
     // #endif
 #if defined(HAS_SCREEN)
     bruceConfig.openThemeFile(bruceConfig.themeFS(), bruceConfig.themePath, false);
+    Serial.println("CP7"); // ES3C28P debug: after openThemeFile
     if (!bruceConfig.instantBoot) {
         boot_screen_anim();
+        Serial.println("CP7b"); // ES3C28P debug: after boot_screen_anim
         startup_sound();
+        Serial.println("CP7c"); // ES3C28P debug: after startup_sound
     }
     if (bruceConfig.wifiAtStartup) {
         log_i("Loading Wifi at Startup");
@@ -574,8 +579,10 @@ void setup() {
 #endif
     //  start a task to handle serial commands while the webui is running
     startSerialCommandsHandlerTask(true);
+    Serial.println("CP8"); // ES3C28P debug: after startSerialCommandsHandlerTask
 
     wakeUpScreen();
+    Serial.println("CP9"); // ES3C28P debug: after wakeUpScreen
     if (bruceConfig.startupApp != "" && !startupApp.startApp(bruceConfig.startupApp)) {
         bruceConfig.setStartupApp("");
     }
