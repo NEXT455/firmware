@@ -102,7 +102,7 @@ void taskInputHandler(void *arg) {
     // while the main task is animating causes SPI/task corruption and a
     // FreeRTOS assert crash. Skip touch polling for the first 3.5s to avoid
     // overlapping with the animation window.
-    const unsigned long BOOT_TOUCH_GUARD_MS = 3500;
+    const unsigned long BOOT_TOUCH_GUARD_MS = 7500; // boot_screen_anim() runs up to 7000ms
 
     while (true) {
         if (millis() - tm > 200 || LongPress) {
