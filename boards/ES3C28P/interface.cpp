@@ -97,10 +97,16 @@ void InputHandler() {
 
 void taskInputHandler(void *arg) {
     static long tm = 0;
+    // Boot animation (boot_screen_anim) draws to the TFT for ~7s right after
+    // setup(). TFT_eSPI is not thread-safe, so reading touch from this task
+    // while the main task is animating causes SPI/task corruption and a
+    // FreeRTOS assert crash. Skip touch polling for the first 3.5s to avoid
+    // overlapping with the animation window.
+    const unsigned long BOOT_TOUCH_GUARD_MS = 3500;
 
     while (true) {
         if (millis() - tm > 200 || LongPress) {
-            if (touchInitialized) {
+            if (touchInitialized && millis() > BOOT_TOUCH_GUARD_MS) {
                 uint16_t t_x = 0, t_y = 0;
                 bool touched = tft.getTouch(&t_x, &t_y);
 
