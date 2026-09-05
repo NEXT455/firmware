@@ -106,6 +106,7 @@ void taskInputHandler(void *arg) {
 
     while (true) {
         if (millis() - tm > 200 || LongPress) {
+#ifdef HAS_TOUCH
             if (touchInitialized && millis() > BOOT_TOUCH_GUARD_MS) {
                 uint16_t t_x = 0, t_y = 0;
                 bool touched = tft.getTouch(&t_x, &t_y);
@@ -122,6 +123,7 @@ void taskInputHandler(void *arg) {
                     touchHeatMap(touchPoint);
                 }
             }
+#endif
 
             if (digitalRead(ES3C28P_BTN_PIN) == ES3C28P_BTN_ACT) {
                 if (!wakeUpScreen()) {
