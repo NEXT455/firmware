@@ -51,7 +51,7 @@ static const uint8_t SCL = 9;
 #define TFT_BACKLIGHT_ON HIGH
 #define SMOOTH_FONT 1
 
-#define TOUCH_CS 17 
+// #define TOUCH_CS 17 
 
 #define SPI_FREQUENCY 40000000
 #define SPI_READ_FREQUENCY 20000000
@@ -62,8 +62,8 @@ static const uint8_t SCL = 9;
 #define MINBRIGHT 1
 #define BACKLIGHT 45
 
-#define HAS_TOUCH 1
-#define HAS_RESISTIVE_TOUCH 1
+// #define HAS_TOUCH 1
+// #define HAS_RESISTIVE_TOUCH 1
 
 // =============================================
 // NRF24L01 2.4GHz Radio (Safe Pins - No 5, 6, 16)
