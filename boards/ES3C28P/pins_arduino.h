@@ -1,131 +1,118 @@
-/*
- * ES3C28P - Board interface implementation for Bruce firmware
- *
- * ملاحظة مهمة:
- * لا تضيف هنا أي أسطر لتعريف بنات NRF24 أو CC1101 أو TFT أو Touch
- * (مثل bruceConfigPins.NRF24_bus.cs أو bruceConfigPins.tftMosi).
- * هذي البنات تتقرأ تلقائيًا من الـ -D فلاجز الموجودة بملف ES3C28P.ini
- * عبر core/configPins.h (اللي يستخدم #ifdef على أسماء مثل NRF24_SCK_PIN).
- * هذا الملف مسؤول بس عن المنطق الخاص بالجهاز: الأزرار، الباطري، النوم، واللمس.
- */
+#ifndef Pins_Arduino_h
+#define Pins_Arduino_h
 
-#include "core/bus_HAL.h"
-#include "core/powerSave.h"
-#include "core/utils.h"
-#include <Arduino.h>
-#include <globals.h>
-#include <interface.h>
+#include "soc/soc_caps.h"
+#include <stdint.h>
 
-#define ES3C28P_BTN_PIN 0
-#define ES3C28P_BTN_ACT LOW
-
-static bool touchInitialized = false;
-
-void _setup_gpio() {
-    touchInitialized = true;
-
-    Serial.begin(115200);
-    Serial.println("CP1");
-
-    // IR pins: مأخوذة من IR_RX_PIN / IR_TX_PIN المعرفة بالـ .ini
-    bruceConfigPins.irRx = (gpio_num_t)IR_RX_PIN;
-    bruceConfigPins.irTx = (gpio_num_t)IR_TX_PIN;
-
-    Serial.println("CP2");
-}
-
-void _post_setup_gpio() {
-    // TFT LED موصول مباشرة إلى 3.3V حسب جدول التوصيل
-}
-
-int getBattery() {
-    static bool adcInitialized = false;
-    if (!adcInitialized) {
-        pinMode(ANALOG_BAT_PIN, INPUT);
-        analogSetAttenuation(ADC_11db);
-        adcInitialized = true;
-    }
-
-    uint32_t adcReading = analogReadMilliVolts(ANALOG_BAT_PIN);
-    float actualVoltage = (float)adcReading * 2.0f;
-
-    const float MIN_VOLTAGE = 2500.0f;
-    const float MAX_VOLTAGE = 4200.0f;
-
-    int percent = (int)(((actualVoltage - MIN_VOLTAGE) / (MAX_VOLTAGE - MIN_VOLTAGE)) * 100.0f);
-
-    if (percent < 0) percent = 0;
-    if (percent > 100) percent = 100;
-
-    return percent;
-}
-
-void _setBrightness(uint8_t brightval) {
-    // TFT LED موصول مباشرة إلى 3.3V، لذلك لا يوجد تحكم PWM بالسطوع
-}
-
-void powerOff() {
-    esp_sleep_enable_ext0_wakeup((gpio_num_t)ES3C28P_BTN_PIN, ES3C28P_BTN_ACT);
-    esp_deep_sleep_start();
-}
-
-void goToDeepSleep() { powerOff(); }
-
-void checkReboot() {
-    int c = 0;
-    while (digitalRead(ES3C28P_BTN_PIN) == ES3C28P_BTN_ACT) {
-        delay(100);
-        c++;
-        if (c > 20) {
-            powerOff();
-        }
-    }
-}
-
-bool isCharging() { return false; }
-
-void InputHandler() {
-    // Stub function required by Bruce interface
-}
-
-void taskInputHandler(void *arg) {
-    static long tm = 0;
-    // Boot animation (boot_screen_anim) draws to the TFT for ~7s right after
-    // setup(). TFT_eSPI is not thread-safe, so reading touch from this task
-    // while the main task is animating causes SPI/task corruption and a
-    // FreeRTOS assert crash. Skip touch polling for the first 3.5s to avoid
-    // overlapping with the animation window.
-    const unsigned long BOOT_TOUCH_GUARD_MS = 7500; // boot_screen_anim() runs up to 7000ms
-
-    while (true) {
-        if (millis() - tm > 200 || LongPress) {
-#ifdef HAS_TOUCH
-            if (touchInitialized && millis() > BOOT_TOUCH_GUARD_MS) {
-                uint16_t t_x = 0, t_y = 0;
-                bool touched = tft.getTouch(&t_x, &t_y);
-
-                if (touched) {
-                    tm = millis();
-
-                    if (!wakeUpScreen()) AnyKeyPress = true;
-                    else continue;
-
-                    touchPoint.x = t_x;
-                    touchPoint.y = t_y;
-                    touchPoint.pressed = true;
-                    touchHeatMap(touchPoint);
-                }
-            }
+#ifndef DEVICE_NAME
+#define DEVICE_NAME "ES3C28P"
 #endif
 
-            if (digitalRead(ES3C28P_BTN_PIN) == ES3C28P_BTN_ACT) {
-                if (!wakeUpScreen()) {
-                    AnyKeyPress = true;
-                    SelPress = true;
-                }
-                while (digitalRead(ES3C28P_BTN_PIN) == ES3C28P_BTN_ACT) delay(10);
-            }
-        }
-        vTaskDelay(pdMS_TO_TICKS(50));
-    }
-}
+// =============================================
+// USB & UART0
+// =============================================
+#define USB_VID 0x303a
+#define USB_PID 0x1001
+
+static const uint8_t TX = 43;
+static const uint8_t RX = 44;
+
+// =============================================
+// Main SPI Bus & RFID SS Aliases
+// =============================================
+#define SPI_SCK_PIN 7
+#define SPI_MOSI_PIN 15
+#define SPI_MISO_PIN 42
+#define SPI_SS_PIN 17
+#define SPI_SS2 17
+
+static const uint8_t SS = SPI_SS_PIN;
+static const uint8_t MOSI = SPI_MOSI_PIN;
+static const uint8_t SCK = SPI_SCK_PIN;
+static const uint8_t MISO = SPI_MISO_PIN;
+static const uint8_t SDA = 8;
+static const uint8_t SCL = 9;
+
+// =============================================
+// TFT Display & Touch (ILI9341 + XPT2046)
+// =============================================
+#define USER_SETUP_LOADED
+#define ILI9341_2_DRIVER 1
+#define TFT_INVERSION_ON 1
+#define TFT_WIDTH 240
+#define TFT_HEIGHT 320
+#define TFT_MISO 42
+#define TFT_MOSI 15
+#define TFT_SCLK 7
+#define TFT_CS 17
+#define TFT_DC 12
+#define TFT_RST 14
+#define TFT_BL -1
+#define TFT_BACKLIGHT_ON HIGH
+#define SMOOTH_FONT 1
+
+#define TOUCH_CS 40
+
+#define SPI_FREQUENCY 40000000
+#define SPI_READ_FREQUENCY 20000000
+#define SPI_TOUCH_FREQUENCY 2500500
+
+#define HAS_SCREEN 1
+#define ROTATION 1 
+#define MINBRIGHT 1
+#define BACKLIGHT -1
+
+// #define HAS_TOUCH 1
+// #define HAS_RESISTIVE_TOUCH 1
+
+// =============================================
+// NRF24L01 2.4GHz Radio (Safe Pins - No 5, 6, 16)
+// =============================================
+#define USE_NRF24_VIA_SPI
+#define NRF24_CE_PIN 1
+#define NRF24_SS_PIN 38
+#define NRF24_MOSI_PIN SPI_MOSI_PIN
+#define NRF24_SCK_PIN SPI_SCK_PIN
+#define NRF24_MISO_PIN SPI_MISO_PIN
+
+// =============================================
+// Infrared (IR TX / RX) - (Excluding 5, 6, 16)
+// =============================================
+#define TXLED 36
+#define RXLED 35
+#define LED_ON HIGH
+#define LED_OFF LOW
+
+#define IR_TX_PINS {{"GPIO36", 36}, {"GPIO14", 14}, {"GPIO21", 21}}
+#define IR_RX_PINS {{"GPIO35", 35}, {"GPIO14", 14}, {"GPIO21", 21}}
+
+// =============================================
+// RF Pins Maps
+// =============================================
+#define RF_TX_PINS {{"GPIO4", 4}, {"GPIO14", 14}, {"GPIO21", 21}}
+#define RF_RX_PINS {{"GPIO7", 7}, {"GPIO14", 14}, {"GPIO21", 21}}
+
+// =============================================
+// Buttons & Battery
+// =============================================
+#define HAS_BTN 1
+#define BTN_ALIAS "\"Boot\""
+#define BTN_PIN 0 
+#define BTN_ACT LOW
+#define SEL_BTN 0 
+
+#define ANALOG_BAT_PIN 21
+#define ANALOG_BAT_MULTIPLIER 2.0f 
+
+// =============================================
+// Serial & Deep Sleep
+// =============================================
+#define SERIAL_TX 43
+#define SERIAL_RX 44
+#define GPS_SERIAL_TX SERIAL_TX
+#define GPS_SERIAL_RX SERIAL_RX
+
+#define DEEPSLEEP_WAKEUP_PIN 0 
+#define DEEPSLEEP_PIN_ACT LOW
+
+#endif /* Pins_Arduino_h */
