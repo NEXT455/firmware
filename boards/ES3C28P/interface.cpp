@@ -35,8 +35,7 @@ void _setup_gpio() {
 }
 
 void _post_setup_gpio() {
-    pinMode(TFT_BL, OUTPUT);
-    analogWrite(TFT_BL, 255);
+    // TFT LED موصول مباشرة إلى 3.3V حسب جدول التوصيل
 }
 
 int getBattery() {
@@ -62,16 +61,10 @@ int getBattery() {
 }
 
 void _setBrightness(uint8_t brightval) {
-    if (brightval == 0) {
-        analogWrite(TFT_BL, 0);
-    } else {
-        int bl = MINBRIGHT + round(((255 - MINBRIGHT) * brightval / 100.0f));
-        analogWrite(TFT_BL, bl);
-    }
+    // TFT LED موصول مباشرة إلى 3.3V، لذلك لا يوجد تحكم PWM بالسطوع
 }
 
 void powerOff() {
-    analogWrite(TFT_BL, 0);
     esp_sleep_enable_ext0_wakeup((gpio_num_t)ES3C28P_BTN_PIN, ES3C28P_BTN_ACT);
     esp_deep_sleep_start();
 }
