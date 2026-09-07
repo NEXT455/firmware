@@ -42,11 +42,11 @@ void _post_setup_gpio() {
     analogWrite(TFT_BL, 255);
 
 #ifdef HAS_TOUCH
-    // تهيئة اللمس هنا، بعد ما tft.init() يخلص بالكامل، بنفس تسلسل
-    // المرجع المجرب اللي ما يتكراش (نشارك نفس كائن SPI تبع الشاشة)
+    // تهيئة اللمس هنا، بعد ما tft.init() يخلص بالكامل
     ts.begin(tft.getSPIinstance());
     ts.setRotation(ROTATION);
     touchInitialized = true;
+    Serial.println("=== Touch init done ===");
 #endif
 }
 
@@ -108,8 +108,20 @@ void InputHandler() {
 
 void taskInputHandler(void *arg) {
     static long tm = 0;
+    static long dbgTm = 0;
 
     while (true) {
+        // طباعة تشخيصية كل ثانيتين، عشان نتأكد فحص اللمس يشتغل أصلاً
+        if (millis() - dbgTm > 2000) {
+#ifdef HAS_TOUCH
+            Serial.print("touchInitialized=");
+            Serial.print(touchInitialized);
+            Serial.print(" touched()=");
+            Serial.println(touchInitialized ? ts.touched() : false);
+#endif
+            dbgTm = millis();
+        }
+
         if (millis() - tm > 200 || LongPress) {
 #ifdef HAS_TOUCH
             if (touchInitialized && ts.touched()) {
