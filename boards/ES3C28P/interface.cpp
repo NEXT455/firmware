@@ -15,15 +15,18 @@
 #include <Arduino.h>
 #include <globals.h>
 #include <interface.h>
+#include <XPT2046_Touchscreen.h>
 
 #define ES3C28P_BTN_PIN 0
 #define ES3C28P_BTN_ACT LOW
 
+// نستخدم مكتبة XPT2046_Touchscreen بدل tft.getTouch() المدمجة بـ TFT_eSPI،
+// لأن الأخيرة أثبتت عدم أمان كافٍ عند القراءة من Task منفصل بالتوازي مع
+// الرسم على الشاشة (سبب كراش xTaskPriorityDisinherit).
+XPT2046_Touchscreen ts(TOUCH_CS);
 static bool touchInitialized = false;
 
 void _setup_gpio() {
-    touchInitialized = true;
-
     Serial.begin(115200);
     Serial.println("CP1");
 
@@ -35,7 +38,16 @@ void _setup_gpio() {
 }
 
 void _post_setup_gpio() {
-    // TFT LED موصول مباشرة إلى 3.3V حسب جدول التوصيل
+    pinMode(TFT_BL, OUTPUT);
+    analogWrite(TFT_BL, 255);
+
+#ifdef HAS_TOUCH
+    // تهيئة اللمس هنا، بعد ما tft.init() يخلص بالكامل، بنفس تسلسل
+    // المرجع المجرب اللي ما يتكراش (نشارك نفس كائن SPI تبع الشاشة)
+    ts.begin(tft.getSPIinstance());
+    ts.setRotation(ROTATION);
+    touchInitialized = true;
+#endif
 }
 
 int getBattery() {
@@ -61,10 +73,16 @@ int getBattery() {
 }
 
 void _setBrightness(uint8_t brightval) {
-    // TFT LED موصول مباشرة إلى 3.3V، لذلك لا يوجد تحكم PWM بالسطوع
+    if (brightval == 0) {
+        analogWrite(TFT_BL, 0);
+    } else {
+        int bl = MINBRIGHT + round(((255 - MINBRIGHT) * brightval / 100.0f));
+        analogWrite(TFT_BL, bl);
+    }
 }
 
 void powerOff() {
+    analogWrite(TFT_BL, 0);
     esp_sleep_enable_ext0_wakeup((gpio_num_t)ES3C28P_BTN_PIN, ES3C28P_BTN_ACT);
     esp_deep_sleep_start();
 }
@@ -90,31 +108,22 @@ void InputHandler() {
 
 void taskInputHandler(void *arg) {
     static long tm = 0;
-    // Boot animation (boot_screen_anim) draws to the TFT for ~7s right after
-    // setup(). TFT_eSPI is not thread-safe, so reading touch from this task
-    // while the main task is animating causes SPI/task corruption and a
-    // FreeRTOS assert crash. Skip touch polling for the first 3.5s to avoid
-    // overlapping with the animation window.
-    const unsigned long BOOT_TOUCH_GUARD_MS = 7500; // boot_screen_anim() runs up to 7000ms
 
     while (true) {
         if (millis() - tm > 200 || LongPress) {
 #ifdef HAS_TOUCH
-            if (touchInitialized && millis() > BOOT_TOUCH_GUARD_MS) {
-                uint16_t t_x = 0, t_y = 0;
-                bool touched = tft.getTouch(&t_x, &t_y);
+            if (touchInitialized && ts.touched()) {
+                TS_Point p = ts.getPoint();
 
-                if (touched) {
-                    tm = millis();
+                tm = millis();
 
-                    if (!wakeUpScreen()) AnyKeyPress = true;
-                    else continue;
+                if (!wakeUpScreen()) AnyKeyPress = true;
+                else continue;
 
-                    touchPoint.x = t_x;
-                    touchPoint.y = t_y;
-                    touchPoint.pressed = true;
-                    touchHeatMap(touchPoint);
-                }
+                touchPoint.x = p.x;
+                touchPoint.y = p.y;
+                touchPoint.pressed = true;
+                touchHeatMap(touchPoint);
             }
 #endif
 
