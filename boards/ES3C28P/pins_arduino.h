@@ -62,8 +62,8 @@ static const uint8_t SCL = 9;
 #define MINBRIGHT 1
 #define BACKLIGHT -1
 
-// #define HAS_TOUCH 1
-// #define HAS_RESISTIVE_TOUCH 1
+ #define HAS_TOUCH 1
+ #define HAS_RESISTIVE_TOUCH 1
 
 // =============================================
 // NRF24L01 2.4GHz Radio (Safe Pins - No 5, 6, 16)
