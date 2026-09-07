@@ -101,7 +101,7 @@ static const uint8_t SCL = 9;
 #define BTN_ACT LOW
 #define SEL_BTN 0 
 
-#define ANALOG_BAT_PIN 21
+#define ANALOG_BAT_PIN 20
 #define ANALOG_BAT_MULTIPLIER 2.0f 
 
 // =============================================
