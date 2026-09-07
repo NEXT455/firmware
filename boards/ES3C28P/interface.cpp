@@ -1,12 +1,7 @@
 /*
  * ES3C28P - Board interface implementation for Bruce firmware
  *
- * ملاحظة مهمة:
- * لا تضيف هنا أي أسطر لتعريف بنات NRF24 أو CC1101 أو TFT أو Touch
- * (مثل bruceConfigPins.NRF24_bus.cs أو bruceConfigPins.tftMosi).
- * هذي البنات تتقرأ تلقائيًا من الـ -D فلاجز الموجودة بملف ES3C28P.ini
- * عبر core/configPins.h (اللي يستخدم #ifdef على أسماء مثل NRF24_SCK_PIN).
- * هذا الملف مسؤول بس عن المنطق الخاص بالجهاز: الأزرار، الباطري، النوم، واللمس.
+ * هذا الملف مسؤول عن المنطق الخاص بالجهاز: الأزرار، البطارية، النوم، واللمس.
  */
 
 #include "core/bus_HAL.h"
@@ -20,9 +15,12 @@
 #define ES3C28P_BTN_PIN 0
 #define ES3C28P_BTN_ACT LOW
 
-// نستخدم مكتبة XPT2046_Touchscreen بدل tft.getTouch() المدمجة بـ TFT_eSPI،
-// لأن الأخيرة أثبتت عدم أمان كافٍ عند القراءة من Task منفصل بالتوازي مع
-// الرسم على الشاشة (سبب كراش xTaskPriorityDisinherit).
+// حد أدنى وأقصى لقراءات الـ ADC الخام من شريحة XPT2046 للمعايرة
+#define TOUCH_MIN_X 200
+#define TOUCH_MAX_X 3800
+#define TOUCH_MIN_Y 200
+#define TOUCH_MAX_Y 3800
+
 XPT2046_Touchscreen ts(TOUCH_CS);
 static bool touchInitialized = false;
 
@@ -30,7 +28,6 @@ void _setup_gpio() {
     Serial.begin(115200);
     Serial.println("CP1");
 
-    // IR pins: مأخوذة من IR_RX_PIN / IR_TX_PIN المعرفة بالـ .ini
     bruceConfigPins.irRx = (gpio_num_t)IR_RX_PIN;
     bruceConfigPins.irTx = (gpio_num_t)IR_TX_PIN;
 
@@ -42,7 +39,6 @@ void _post_setup_gpio() {
     analogWrite(TFT_BL, 255);
 
 #ifdef HAS_TOUCH
-    // تهيئة اللمس هنا، بعد ما tft.init() يخلص بالكامل
     ts.begin(tft.getSPIinstance());
     ts.setRotation(ROTATION);
     touchInitialized = true;
@@ -102,51 +98,67 @@ void checkReboot() {
 
 bool isCharging() { return false; }
 
+// معالجة مدخلات اللمس وتمريرها لنظام Bruce
 void InputHandler() {
-    // Stub function required by Bruce interface
+    static long d_tmp = 0;
+
+    if (millis() - d_tmp > 150 || LongPress) {
+#ifdef HAS_TOUCH
+        if (touchInitialized && ts.touched()) {
+            TS_Point p = ts.getPoint();
+
+            // 1. تحويل القراءات الخام (ADC) إلى مقاسات الشاشة الحقيقية (240x320)
+            int mappedX = map(p.x, TOUCH_MIN_X, TOUCH_MAX_X, 0, TFT_WIDTH);
+            int mappedY = map(p.y, TOUCH_MIN_Y, TOUCH_MAX_Y, 0, TFT_HEIGHT);
+
+            // ضمان عدم خروج القيم عن نطاق أبعاد الشاشة
+            mappedX = constrain(mappedX, 0, TFT_WIDTH);
+            mappedY = constrain(mappedY, 0, TFT_HEIGHT);
+
+            // 2. ضبط اتجاه المحاور بناءً على تدوير الشاشة (ROTATION 1)
+            uint8_t rot = bruceConfigPins.rotation;
+            if (rot == 1) {
+                // وضع LNDSCAPE العادي
+                touchPoint.x = mappedY;
+                touchPoint.y = TFT_WIDTH - mappedX;
+            } else if (rot == 3) {
+                touchPoint.x = TFT_HEIGHT - mappedY;
+                touchPoint.y = mappedX;
+            } else {
+                touchPoint.x = mappedX;
+                touchPoint.y = mappedY;
+            }
+
+            if (!wakeUpScreen()) {
+                AnyKeyPress = true;
+            } else {
+                goto END_TOUCH;
+            }
+
+            // 3. إرسال النقاط المعايرة لخريطة Bruce الاستشعارية
+            touchPoint.pressed = true;
+            touchHeatMap(touchPoint);
+
+        END_TOUCH:
+            d_tmp = millis();
+        }
+#endif
+    }
+
+#ifdef HAS_BTN
+    checkPowerSaveTime();
+    if (digitalRead(ES3C28P_BTN_PIN) == ES3C28P_BTN_ACT) {
+        if (!wakeUpScreen()) AnyKeyPress = true;
+        SelPress = true;
+        long tmp = millis();
+        while ((millis() - tmp) < 200 && digitalRead(ES3C28P_BTN_PIN) == ES3C28P_BTN_ACT);
+    }
+#endif
 }
 
 void taskInputHandler(void *arg) {
-    static long tm = 0;
-    static long dbgTm = 0;
-
     while (true) {
-        // طباعة تشخيصية كل ثانيتين، عشان نتأكد فحص اللمس يشتغل أصلاً
-        if (millis() - dbgTm > 2000) {
-#ifdef HAS_TOUCH
-            Serial.print("touchInitialized=");
-            Serial.print(touchInitialized);
-            Serial.print(" touched()=");
-            Serial.println(touchInitialized ? ts.touched() : false);
-#endif
-            dbgTm = millis();
-        }
-
-        if (millis() - tm > 200 || LongPress) {
-#ifdef HAS_TOUCH
-            if (touchInitialized && ts.touched()) {
-                TS_Point p = ts.getPoint();
-
-                tm = millis();
-
-                if (!wakeUpScreen()) AnyKeyPress = true;
-                else continue;
-
-                touchPoint.x = p.x;
-                touchPoint.y = p.y;
-                touchPoint.pressed = true;
-                touchHeatMap(touchPoint);
-            }
-#endif
-
-            if (digitalRead(ES3C28P_BTN_PIN) == ES3C28P_BTN_ACT) {
-                if (!wakeUpScreen()) {
-                    AnyKeyPress = true;
-                    SelPress = true;
-                }
-                while (digitalRead(ES3C28P_BTN_PIN) == ES3C28P_BTN_ACT) delay(10);
-            }
-        }
-        vTaskDelay(pdMS_TO_TICKS(50));
+        InputHandler();
+        vTaskDelay(pdMS_TO_TICKS(30));
     }
 }
