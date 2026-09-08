@@ -119,6 +119,11 @@ void InputHandler() {
                 mappedX = constrain(mappedX, 0, TFT_WIDTH - 1);
                 mappedY = constrain(mappedY, 0, TFT_HEIGHT - 1);
 
+                // --- سطور تشخيص مؤقتة، احذفها بعد ما نخلص المعايرة ---
+                Serial.print("mappedX="); Serial.print(mappedX);
+                Serial.print(" mappedY="); Serial.println(mappedY);
+                // ---------------------------------------------------
+
                 // 2. ضبط اتجاه المحاور بناءً على تدوير الشاشة (ROTATION 1)
                 uint8_t rot = bruceConfigPins.rotation;
                 if (rot == 1) {
