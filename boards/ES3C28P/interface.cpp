@@ -15,11 +15,12 @@
 #define ES3C28P_BTN_PIN 0
 #define ES3C28P_BTN_ACT LOW
 
-// حد أدنى وأقصى لقراءات الـ ADC الخام من شريحة XPT2046 للمعايرة
-#define TOUCH_MIN_X 200
-#define TOUCH_MAX_X 3800
-#define TOUCH_MIN_Y 200
-#define TOUCH_MAX_Y 3800
+// قيم المعايرة الحقيقية والدقيقة المقاسة للشاشة
+#define TOUCH_MIN_X 480
+#define TOUCH_MAX_X 3845
+#define TOUCH_MIN_Y 393
+#define TOUCH_MAX_Y 3673
+#define TOUCH_Z_THRESHOLD 350
 
 XPT2046_Touchscreen ts(TOUCH_CS);
 static bool touchInitialized = false;
@@ -107,37 +108,41 @@ void InputHandler() {
         if (touchInitialized && ts.touched()) {
             TS_Point p = ts.getPoint();
 
-            // 1. تحويل القراءات الخام (ADC) إلى مقاسات الشاشة الحقيقية (240x320)
-            int mappedX = map(p.x, TOUCH_MIN_X, TOUCH_MAX_X, 0, TFT_WIDTH);
-            int mappedY = map(p.y, TOUCH_MIN_Y, TOUCH_MAX_Y, 0, TFT_HEIGHT);
+            // الفلترة بناءً على عتبة الضغط للحماية من اللمسات الوهمية
+            if (p.z > TOUCH_Z_THRESHOLD) {
 
-            // ضمان عدم خروج القيم عن نطاق أبعاد الشاشة
-            mappedX = constrain(mappedX, 0, TFT_WIDTH);
-            mappedY = constrain(mappedY, 0, TFT_HEIGHT);
+                // 1. تحويل القراءات الخام (ADC) إلى مقاسات الشاشة الحقيقية بناءً على المعايرة
+                int mappedX = map(p.x, TOUCH_MIN_X, TOUCH_MAX_X, 0, TFT_WIDTH);
+                int mappedY = map(p.y, TOUCH_MIN_Y, TOUCH_MAX_Y, 0, TFT_HEIGHT);
 
-            // 2. ضبط اتجاه المحاور بناءً على تدوير الشاشة (ROTATION 1)
-            uint8_t rot = bruceConfigPins.rotation;
-            if (rot == 1) {
-                // وضع LNDSCAPE العادي
-                touchPoint.x = mappedY;
-                touchPoint.y = TFT_WIDTH - mappedX;
-            } else if (rot == 3) {
-                touchPoint.x = TFT_HEIGHT - mappedY;
-                touchPoint.y = mappedX;
-            } else {
-                touchPoint.x = mappedX;
-                touchPoint.y = mappedY;
+                // ضمان عدم خروج القيم عن نطاق أبعاد الشاشة
+                mappedX = constrain(mappedX, 0, TFT_WIDTH - 1);
+                mappedY = constrain(mappedY, 0, TFT_HEIGHT - 1);
+
+                // 2. ضبط اتجاه المحاور بناءً على تدوير الشاشة (ROTATION 1)
+                uint8_t rot = bruceConfigPins.rotation;
+                if (rot == 1) {
+                    // وضع LANDSCAPE العادي
+                    touchPoint.x = mappedY;
+                    touchPoint.y = TFT_WIDTH - mappedX;
+                } else if (rot == 3) {
+                    touchPoint.x = TFT_HEIGHT - mappedY;
+                    touchPoint.y = mappedX;
+                } else {
+                    touchPoint.x = mappedX;
+                    touchPoint.y = mappedY;
+                }
+
+                if (!wakeUpScreen()) {
+                    AnyKeyPress = true;
+                } else {
+                    goto END_TOUCH;
+                }
+
+                // 3. إرسال النقاط المعايرة لخريطة Bruce الاستشعارية
+                touchPoint.pressed = true;
+                touchHeatMap(touchPoint);
             }
-
-            if (!wakeUpScreen()) {
-                AnyKeyPress = true;
-            } else {
-                goto END_TOUCH;
-            }
-
-            // 3. إرسال النقاط المعايرة لخريطة Bruce الاستشعارية
-            touchPoint.pressed = true;
-            touchHeatMap(touchPoint);
 
         END_TOUCH:
             d_tmp = millis();
