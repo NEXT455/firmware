@@ -15,6 +15,7 @@
 #define ES3C28P_BTN_PIN 0
 #define ES3C28P_BTN_ACT LOW
 
+// قيم المعايرة الحقيقية والدقيقة المقاسة للشاشة
 #define TOUCH_MIN_X 480
 #define TOUCH_MAX_X 3845
 #define TOUCH_MIN_Y 393
@@ -26,18 +27,23 @@ static bool touchInitialized = false;
 
 void _setup_gpio() {
     Serial.begin(115200);
+    Serial.println("CP1");
+
     bruceConfigPins.irRx = (gpio_num_t)IR_RX_PIN;
     bruceConfigPins.irTx = (gpio_num_t)IR_TX_PIN;
+
+    Serial.println("CP2");
 }
 
 void _post_setup_gpio() {
     pinMode(TFT_BL, OUTPUT);
     analogWrite(TFT_BL, 255);
+
 #ifdef HAS_TOUCH
     ts.begin(tft.getSPIinstance());
-    // ملاحظة: ts.setRotation() محذوفة عمدًا — كانت تقلب الإشارة من داخل
-    // المكتبة، وبنفس الوقت نقلبها يدويًا تحت، فيصير قلب مزدوج يفسد الاتجاه.
+    ts.setRotation(ROTATION);
     touchInitialized = true;
+    Serial.println("=== Touch init done ===");
 #endif
 }
 
@@ -48,17 +54,28 @@ int getBattery() {
         analogSetAttenuation(ADC_11db);
         adcInitialized = true;
     }
+
     uint32_t adcReading = analogReadMilliVolts(ANALOG_BAT_PIN);
     float actualVoltage = (float)adcReading * 2.0f;
-    int percent = (int)(((actualVoltage - 2500.0f) / (4200.0f - 2500.0f)) * 100.0f);
+
+    const float MIN_VOLTAGE = 2500.0f;
+    const float MAX_VOLTAGE = 4200.0f;
+
+    int percent = (int)(((actualVoltage - MIN_VOLTAGE) / (MAX_VOLTAGE - MIN_VOLTAGE)) * 100.0f);
+
     if (percent < 0) percent = 0;
     if (percent > 100) percent = 100;
+
     return percent;
 }
 
 void _setBrightness(uint8_t brightval) {
-    if (brightval == 0) analogWrite(TFT_BL, 0);
-    else analogWrite(TFT_BL, MINBRIGHT + round(((255 - MINBRIGHT) * brightval / 100.0f)));
+    if (brightval == 0) {
+        analogWrite(TFT_BL, 0);
+    } else {
+        int bl = MINBRIGHT + round(((255 - MINBRIGHT) * brightval / 100.0f));
+        analogWrite(TFT_BL, bl);
+    }
 }
 
 void powerOff() {
@@ -73,45 +90,78 @@ void checkReboot() {
     int c = 0;
     while (digitalRead(ES3C28P_BTN_PIN) == ES3C28P_BTN_ACT) {
         delay(100);
-        if (++c > 20) powerOff();
+        c++;
+        if (c > 20) {
+            powerOff();
+        }
     }
 }
 
 bool isCharging() { return false; }
 
+// معالجة مدخلات اللمس وتمريرها لنظام Bruce مع فلترة وتنعيم القلم
 void InputHandler() {
     static long d_tmp = 0;
-    static int prevX = -1, prevY = -1;
 
-    if (millis() - d_tmp > 50 || LongPress) {
+    // متغيرات تتبع النقر والسحب وفلترة القلم
+    static int startX = -1;
+    static int startY = -1;
+    static int prevX = -1;
+    static int prevY = -1;
+
+    if (millis() - d_tmp > 50 || LongPress) { // 50ms استجابة ناعمة وسريعة
 #ifdef HAS_TOUCH
         if (touchInitialized && ts.touched()) {
             TS_Point p = ts.getPoint();
+
+            // الفلترة بناءً على عتبة الضغط
             if (p.z > TOUCH_Z_THRESHOLD) {
+
+                // 1. تحويل القراءات الخام
                 int rawMappedX = map(p.x, TOUCH_MIN_X, TOUCH_MAX_X, 0, TFT_WIDTH - 1);
                 int rawMappedY = map(p.y, TOUCH_MIN_Y, TOUCH_MAX_Y, 0, TFT_HEIGHT - 1);
+
                 rawMappedX = constrain(rawMappedX, 0, TFT_WIDTH - 1);
                 rawMappedY = constrain(rawMappedY, 0, TFT_HEIGHT - 1);
-                rawMappedX = (TFT_WIDTH - 1) - rawMappedX;  // تصحيح عكس X
 
+                // 2. تنعيم القراءات (Low-Pass Filter) لمنع اهتزاز القلم
                 int finalX, finalY;
-                if (prevX == -1) { finalX = rawMappedX; finalY = rawMappedY; }
-                else {
+                if (prevX == -1 || prevY == -1) {
+                    finalX = rawMappedX;
+                    finalY = rawMappedY;
+                } else {
                     finalX = (prevX * 2 + rawMappedX) / 3;
                     finalY = (prevY * 2 + rawMappedY) / 3;
                 }
-                prevX = finalX; prevY = finalY;
+                prevX = finalX;
+                prevY = finalY;
 
+                // 3. إسناد النقاط المباشرة بدون تدوير يدوي مضاعف
                 touchPoint.x = finalX;
                 touchPoint.y = finalY;
                 touchPoint.pressed = true;
 
-                if (!wakeUpScreen()) AnyKeyPress = true;
-                else touchHeatMap(touchPoint);
+                // 4. تحديد بداية الضغط
+                if (startX == -1 && startY == -1) {
+                    startX = finalX;
+                    startY = finalY;
+                }
+
+                // 5. إيقاظ الشاشة أو إرسال النقاط لنظام Bruce
+                if (!wakeUpScreen()) {
+                    AnyKeyPress = true;
+                } else {
+                    touchHeatMap(touchPoint); // تم التصحيح: إرسال مباشر للنظام
+                }
             }
+
             d_tmp = millis();
         } else {
-            prevX = -1; prevY = -1;
+            // إعادة تصفير المتغيرات عند رفع القلم
+            startX = -1;
+            startY = -1;
+            prevX = -1;
+            prevY = -1;
         }
 #endif
     }
@@ -128,6 +178,7 @@ void InputHandler() {
 }
 
 void taskInputHandler(void *arg) {
+    (void)arg;
     while (true) {
         InputHandler();
         vTaskDelay(pdMS_TO_TICKS(30));
