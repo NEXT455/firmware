@@ -20,7 +20,7 @@
 #define TOUCH_MAX_X 3845
 #define TOUCH_MIN_Y 393
 #define TOUCH_MAX_Y 3673
-#define TOUCH_Z_THRESHOLD 350
+#define TOUCH_Z_THRESHOLD 300
 
 XPT2046_Touchscreen ts(TOUCH_CS);
 static bool touchInitialized = false;
@@ -99,67 +99,63 @@ void checkReboot() {
 
 bool isCharging() { return false; }
 
-// معالجة مدخلات اللمس وتمريرها لنظام Bruce مع فلترة وتنعيم القلم
+// معالجة مدخلات اللمس وتمريرها لنظام Bruce
 void InputHandler() {
     static long d_tmp = 0;
+    static int prevX = -1, prevY = -1;
 
-    // متغيرات تتبع النقر والسحب وفلترة القلم
-    static int startX = -1;
-    static int startY = -1;
-    static int prevX = -1;
-    static int prevY = -1;
-
-    if (millis() - d_tmp > 50 || LongPress) { // 50ms استجابة ناعمة وسريعة
+    if (millis() - d_tmp > 50 || LongPress) {
 #ifdef HAS_TOUCH
         if (touchInitialized && ts.touched()) {
             TS_Point p = ts.getPoint();
 
-            // الفلترة بناءً على عتبة الضغط
+            // الفلترة بناءً على عتبة الضغط للحماية من اللمسات الوهمية
             if (p.z > TOUCH_Z_THRESHOLD) {
 
-                // 1. تحويل القراءات الخام
-                int rawMappedX = map(p.x, TOUCH_MIN_X, TOUCH_MAX_X, 0, TFT_WIDTH - 1);
-                int rawMappedY = map(p.y, TOUCH_MIN_Y, TOUCH_MAX_Y, 0, TFT_HEIGHT - 1);
+                // 1. تحويل القراءات الخام إلى مقاسات الشاشة
+                int mappedX = map(p.x, TOUCH_MIN_X, TOUCH_MAX_X, 0, TFT_WIDTH - 1);
+                int mappedY = map(p.y, TOUCH_MIN_Y, TOUCH_MAX_Y, 0, TFT_HEIGHT - 1);
 
-                rawMappedX = constrain(rawMappedX, 0, TFT_WIDTH - 1);
-                rawMappedY = constrain(rawMappedY, 0, TFT_HEIGHT - 1);
+                mappedX = constrain(mappedX, 0, TFT_WIDTH - 1);
+                mappedY = constrain(mappedY, 0, TFT_HEIGHT - 1);
 
-                // 2. تنعيم القراءات (Low-Pass Filter) لمنع اهتزاز القلم
-                int finalX, finalY;
+                // 2. تنعيم القراءات لتثبيت دقة سن القلم ومنع الاهتزاز
+                int smoothX, smoothY;
                 if (prevX == -1 || prevY == -1) {
-                    finalX = rawMappedX;
-                    finalY = rawMappedY;
+                    smoothX = mappedX;
+                    smoothY = mappedY;
                 } else {
-                    finalX = (prevX * 2 + rawMappedX) / 3;
-                    finalY = (prevY * 2 + rawMappedY) / 3;
+                    smoothX = (prevX * 2 + mappedX) / 3;
+                    smoothY = (prevY * 2 + mappedY) / 3;
                 }
-                prevX = finalX;
-                prevY = finalY;
+                prevX = smoothX;
+                prevY = smoothY;
 
-                // 3. إسناد النقاط المباشرة بدون تدوير يدوي مضاعف
-                touchPoint.x = finalX;
-                touchPoint.y = finalY;
+                // 3. تطبيق منطق التدوير الخاص بكودك القديم الشغال
+                uint8_t rot = bruceConfigPins.rotation;
+                if (rot == 1) {
+                    touchPoint.x = smoothY;
+                    touchPoint.y = (TFT_WIDTH - 1) - smoothX;
+                } else if (rot == 3) {
+                    touchPoint.x = (TFT_HEIGHT - 1) - smoothY;
+                    touchPoint.y = smoothX;
+                } else {
+                    touchPoint.x = smoothX;
+                    touchPoint.y = smoothY;
+                }
+
+                // 4. إرسال الإحداثيات الدقيقة للنظام
                 touchPoint.pressed = true;
 
-                // 4. تحديد بداية الضغط
-                if (startX == -1 && startY == -1) {
-                    startX = finalX;
-                    startY = finalY;
-                }
-
-                // 5. إيقاظ الشاشة أو إرسال النقاط لنظام Bruce
                 if (!wakeUpScreen()) {
                     AnyKeyPress = true;
                 } else {
-                    touchHeatMap(touchPoint); // تم التصحيح: إرسال مباشر للنظام
+                    touchHeatMap(touchPoint);
                 }
             }
-
             d_tmp = millis();
         } else {
-            // إعادة تصفير المتغيرات عند رفع القلم
-            startX = -1;
-            startY = -1;
+            // إعادة تصفير التنعيم عند رفع القلم
             prevX = -1;
             prevY = -1;
         }
