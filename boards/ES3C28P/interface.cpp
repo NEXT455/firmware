@@ -20,7 +20,7 @@
 #define TOUCH_MAX_X 3845
 #define TOUCH_MIN_Y 393
 #define TOUCH_MAX_Y 3673
-#define TOUCH_Z_THRESHOLD 300
+#define TOUCH_Z_THRESHOLD 350
 
 XPT2046_Touchscreen ts(TOUCH_CS);
 static bool touchInitialized = false;
@@ -102,9 +102,8 @@ bool isCharging() { return false; }
 // معالجة مدخلات اللمس وتمريرها لنظام Bruce
 void InputHandler() {
     static long d_tmp = 0;
-    static int prevX = -1, prevY = -1;
 
-    if (millis() - d_tmp > 50 || LongPress) {
+    if (millis() - d_tmp > 150 || LongPress) {
 #ifdef HAS_TOUCH
         if (touchInitialized && ts.touched()) {
             TS_Point p = ts.getPoint();
@@ -112,52 +111,41 @@ void InputHandler() {
             // الفلترة بناءً على عتبة الضغط للحماية من اللمسات الوهمية
             if (p.z > TOUCH_Z_THRESHOLD) {
 
-                // 1. تحويل القراءات الخام إلى مقاسات الشاشة
-                int mappedX = map(p.x, TOUCH_MIN_X, TOUCH_MAX_X, 0, TFT_WIDTH - 1);
-                int mappedY = map(p.y, TOUCH_MIN_Y, TOUCH_MAX_Y, 0, TFT_HEIGHT - 1);
+                // 1. تحويل القراءات الخام (ADC) إلى مقاسات الشاشة الحقيقية بناءً على المعايرة
+                int mappedX = map(p.x, TOUCH_MIN_X, TOUCH_MAX_X, 0, TFT_WIDTH);
+                int mappedY = map(p.y, TOUCH_MIN_Y, TOUCH_MAX_Y, 0, TFT_HEIGHT);
 
+                // ضمان عدم خروج القيم عن نطاق أبعاد الشاشة
                 mappedX = constrain(mappedX, 0, TFT_WIDTH - 1);
                 mappedY = constrain(mappedY, 0, TFT_HEIGHT - 1);
 
-                // 2. تنعيم القراءات لتثبيت دقة سن القلم ومنع الاهتزاز
-                int smoothX, smoothY;
-                if (prevX == -1 || prevY == -1) {
-                    smoothX = mappedX;
-                    smoothY = mappedY;
-                } else {
-                    smoothX = (prevX * 2 + mappedX) / 3;
-                    smoothY = (prevY * 2 + mappedY) / 3;
-                }
-                prevX = smoothX;
-                prevY = smoothY;
-
-                // 3. تطبيق منطق التدوير الخاص بكودك القديم الشغال
+                // 2. ضبط اتجاه المحاور بناءً على تدوير الشاشة (ROTATION 1)
                 uint8_t rot = bruceConfigPins.rotation;
                 if (rot == 1) {
-                    touchPoint.x = smoothY;
-                    touchPoint.y = (TFT_WIDTH - 1) - smoothX;
+                    // وضع LANDSCAPE العادي
+                    touchPoint.x = mappedY;
+                    touchPoint.y = TFT_WIDTH - mappedX;
                 } else if (rot == 3) {
-                    touchPoint.x = (TFT_HEIGHT - 1) - smoothY;
-                    touchPoint.y = smoothX;
+                    touchPoint.x = TFT_HEIGHT - mappedY;
+                    touchPoint.y = mappedX;
                 } else {
-                    touchPoint.x = smoothX;
-                    touchPoint.y = smoothY;
+                    touchPoint.x = mappedX;
+                    touchPoint.y = mappedY;
                 }
-
-                // 4. إرسال الإحداثيات الدقيقة للنظام
-                touchPoint.pressed = true;
 
                 if (!wakeUpScreen()) {
                     AnyKeyPress = true;
                 } else {
-                    touchHeatMap(touchPoint);
+                    goto END_TOUCH;
                 }
+
+                // 3. إرسال النقاط المعايرة لخريطة Bruce الاستشعارية
+                touchPoint.pressed = true;
+                touchHeatMap(touchPoint);
             }
+
+        END_TOUCH:
             d_tmp = millis();
-        } else {
-            // إعادة تصفير التنعيم عند رفع القلم
-            prevX = -1;
-            prevY = -1;
         }
 #endif
     }
@@ -174,7 +162,6 @@ void InputHandler() {
 }
 
 void taskInputHandler(void *arg) {
-    (void)arg;
     while (true) {
         InputHandler();
         vTaskDelay(pdMS_TO_TICKS(30));
