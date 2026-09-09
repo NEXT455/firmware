@@ -1,7 +1,12 @@
+/*
+ * ES3C28P - Board interface implementation for Bruce firmware
+ *
+ * هذا الملف مسؤول عن المنطق الخاص بالجهاز: الأزرار، البطارية، النوم، واللمس.
+ */
+
 #include "core/bus_HAL.h"
 #include "core/powerSave.h"
 #include "core/utils.h"
-
 #include <Arduino.h>
 #include <globals.h>
 #include <interface.h>
@@ -10,457 +15,121 @@
 #define ES3C28P_BTN_PIN 0
 #define ES3C28P_BTN_ACT LOW
 
-// ============================================================
-// XPT2046 TOUCH CALIBRATION
-// ============================================================
-
 #define TOUCH_MIN_X 480
 #define TOUCH_MAX_X 3845
 #define TOUCH_MIN_Y 393
 #define TOUCH_MAX_Y 3673
-
 #define TOUCH_Z_THRESHOLD 350
 
-// مقدار التنعيم
-#define TOUCH_SMOOTH_NUM 2
-#define TOUCH_SMOOTH_DEN 3
-
-// ============================================================
-// TOUCH OBJECT
-// ============================================================
-
 XPT2046_Touchscreen ts(TOUCH_CS);
-
 static bool touchInitialized = false;
 
-// حالة اللمس السابقة
-static bool wasTouching = false;
-
-// آخر إحداثيات مستقرة
-static int lastTouchX = -1;
-static int lastTouchY = -1;
-
-// ============================================================
-// GPIO SETUP
-// ============================================================
-
 void _setup_gpio() {
-
     Serial.begin(115200);
-
-    Serial.println("CP1");
-
-#ifdef IR_RX_PIN
     bruceConfigPins.irRx = (gpio_num_t)IR_RX_PIN;
-#endif
-
-#ifdef IR_TX_PIN
     bruceConfigPins.irTx = (gpio_num_t)IR_TX_PIN;
-#endif
-
-    Serial.println("CP2");
 }
-
-// ============================================================
-// POST GPIO SETUP
-// ============================================================
 
 void _post_setup_gpio() {
-
-    /*
-     * TFT_BL = -1 في Pins_Arduino.h
-     * لذلك لا نحاول استخدامه كـ GPIO.
-     */
-#if defined(TFT_BL) && (TFT_BL >= 0)
-
     pinMode(TFT_BL, OUTPUT);
-    digitalWrite(TFT_BL, TFT_BACKLIGHT_ON);
-
-#endif
-
-    // --------------------------------------------------------
-    // TOUCH INIT
-    // --------------------------------------------------------
-
-#if defined(HAS_TOUCH)
-
-    Serial.println("=== Initializing XPT2046 Touch ===");
-
-    /*
-     * نستخدم نفس SPI bus الخاص بالشاشة.
-     */
+    analogWrite(TFT_BL, 255);
+#ifdef HAS_TOUCH
     ts.begin(tft.getSPIinstance());
-
-    /*
-     * نخلي المكتبة تعرف اتجاه الشاشة.
-     * لا نسوي rotation يدوي بعد قراءة الإحداثيات.
-     */
-    ts.setRotation(ROTATION);
-
+    // ملاحظة: ts.setRotation() محذوفة عمدًا — كانت تقلب الإشارة من داخل
+    // المكتبة، وبنفس الوقت نقلبها يدويًا تحت، فيصير قلب مزدوج يفسد الاتجاه.
     touchInitialized = true;
-
-    Serial.println("=== Touch init done ===");
-
 #endif
 }
-
-// ============================================================
-// BATTERY
-// ============================================================
 
 int getBattery() {
-
-#ifdef ANALOG_BAT_PIN
-
-    uint32_t totalMv = 0;
-
-    for (int i = 0; i < 4; i++) {
-        totalMv += analogReadMilliVolts(ANALOG_BAT_PIN);
-        delay(2);
+    static bool adcInitialized = false;
+    if (!adcInitialized) {
+        pinMode(ANALOG_BAT_PIN, INPUT);
+        analogSetAttenuation(ADC_11db);
+        adcInitialized = true;
     }
-
-    uint32_t mv = totalMv / 4;
-
-#ifdef ANALOG_BAT_MULTIPLIER
-    mv = (uint32_t)(mv * ANALOG_BAT_MULTIPLIER);
-#else
-    mv = mv * 2;
-#endif
-
-    return constrain((int)mv, 2500, 4200);
-
-#else
-
-    // لا توجد دائرة قياس بطارية معرفة.
-    return 0;
-
-#endif
+    uint32_t adcReading = analogReadMilliVolts(ANALOG_BAT_PIN);
+    float actualVoltage = (float)adcReading * 2.0f;
+    int percent = (int)(((actualVoltage - 2500.0f) / (4200.0f - 2500.0f)) * 100.0f);
+    if (percent < 0) percent = 0;
+    if (percent > 100) percent = 100;
+    return percent;
 }
 
-// ============================================================
-// BRIGHTNESS
-// ============================================================
-
-void _setBrightness(uint8_t brightness) {
-
-#if defined(TFT_BL) && (TFT_BL >= 0)
-
-    analogWrite(TFT_BL, brightness);
-
-#endif
+void _setBrightness(uint8_t brightval) {
+    if (brightval == 0) analogWrite(TFT_BL, 0);
+    else analogWrite(TFT_BL, MINBRIGHT + round(((255 - MINBRIGHT) * brightval / 100.0f)));
 }
-
-// ============================================================
-// POWER OFF
-// ============================================================
 
 void powerOff() {
-
-    Serial.println("Power off");
-
-    /*
-     * لا يوجد PMIC معرف حالياً لهذه اللوحة،
-     * لذلك لا نرسل أوامر إلى PMIC غير موجود.
-     */
-
-    goToDeepSleep();
-}
-
-// ============================================================
-// DEEP SLEEP
-// ============================================================
-
-void goToDeepSleep() {
-
-    Serial.println("Entering deep sleep...");
-
-    delay(100);
-
-    esp_sleep_enable_ext0_wakeup(
-        (gpio_num_t)ES3C28P_BTN_PIN,
-        ES3C28P_BTN_ACT == LOW ? 0 : 1
-    );
-
+    analogWrite(TFT_BL, 0);
+    esp_sleep_enable_ext0_wakeup((gpio_num_t)ES3C28P_BTN_PIN, ES3C28P_BTN_ACT);
     esp_deep_sleep_start();
 }
 
-// ============================================================
-// REBOOT
-// ============================================================
+void goToDeepSleep() { powerOff(); }
 
 void checkReboot() {
-
-    if (digitalRead(ES3C28P_BTN_PIN) == ES3C28P_BTN_ACT) {
-
-        static uint32_t pressStart = 0;
-
-        if (pressStart == 0) {
-            pressStart = millis();
-        }
-
-        if (millis() - pressStart > 3000) {
-
-            Serial.println("Rebooting...");
-
-            delay(100);
-
-            ESP.restart();
-        }
-
-    } else {
-
-        static uint32_t pressStart = 0;
-        pressStart = 0;
+    int c = 0;
+    while (digitalRead(ES3C28P_BTN_PIN) == ES3C28P_BTN_ACT) {
+        delay(100);
+        if (++c > 20) powerOff();
     }
 }
 
-// ============================================================
-// CHARGING
-// ============================================================
-
-bool isCharging() {
-
-    /*
-     * لا يوجد PMIC / charger GPIO معرف حالياً.
-     */
-    return false;
-}
-
-// ============================================================
-// TOUCH READING
-// ============================================================
-
-static bool readTouch(int &x, int &y) {
-
-#if defined(HAS_TOUCH)
-
-    if (!touchInitialized) {
-        return false;
-    }
-
-    if (!ts.touched()) {
-        return false;
-    }
-
-    TS_Point p = ts.getPoint();
-
-    // --------------------------------------------------------
-    // الضغط الضعيف / القراءة غير الصالحة
-    // --------------------------------------------------------
-
-    if (p.z < TOUCH_Z_THRESHOLD) {
-        return false;
-    }
-
-    // --------------------------------------------------------
-    // RAW -> SCREEN
-    // --------------------------------------------------------
-
-    int mappedX = map(
-        p.x,
-        TOUCH_MIN_X,
-        TOUCH_MAX_X,
-        0,
-        tftWidth - 1
-    );
-
-    int mappedY = map(
-        p.y,
-        TOUCH_MIN_Y,
-        TOUCH_MAX_Y,
-        0,
-        tftHeight - 1
-    );
-
-    // --------------------------------------------------------
-    // LIMIT
-    // --------------------------------------------------------
-
-    mappedX = constrain(
-        mappedX,
-        0,
-        tftWidth - 1
-    );
-
-    mappedY = constrain(
-        mappedY,
-        0,
-        tftHeight - 1
-    );
-
-    // --------------------------------------------------------
-    // SMOOTHING
-    // --------------------------------------------------------
-
-    if (lastTouchX < 0 || lastTouchY < 0) {
-
-        x = mappedX;
-        y = mappedY;
-
-    } else {
-
-        x =
-            (lastTouchX * TOUCH_SMOOTH_NUM +
-             mappedX) /
-            (TOUCH_SMOOTH_NUM + 1);
-
-        y =
-            (lastTouchY * TOUCH_SMOOTH_NUM +
-             mappedY) /
-            (TOUCH_SMOOTH_NUM + 1);
-    }
-
-    lastTouchX = x;
-    lastTouchY = y;
-
-    return true;
-
-#else
-
-    return false;
-
-#endif
-}
-
-// ============================================================
-// INPUT HANDLER
-// ============================================================
+bool isCharging() { return false; }
 
 void InputHandler() {
+    static long d_tmp = 0;
+    static int prevX = -1, prevY = -1;
 
-    static uint32_t lastInputTime = 0;
+    if (millis() - d_tmp > 50 || LongPress) {
+#ifdef HAS_TOUCH
+        if (touchInitialized && ts.touched()) {
+            TS_Point p = ts.getPoint();
+            if (p.z > TOUCH_Z_THRESHOLD) {
+                int rawMappedX = map(p.x, TOUCH_MIN_X, TOUCH_MAX_X, 0, TFT_WIDTH - 1);
+                int rawMappedY = map(p.y, TOUCH_MIN_Y, TOUCH_MAX_Y, 0, TFT_HEIGHT - 1);
+                rawMappedX = constrain(rawMappedX, 0, TFT_WIDTH - 1);
+                rawMappedY = constrain(rawMappedY, 0, TFT_HEIGHT - 1);
+                rawMappedX = (TFT_WIDTH - 1) - rawMappedX;  // تصحيح عكس X
 
-    /*
-     * لا نقرأ اللمس بسرعة كبيرة جداً.
-     */
-    if (millis() - lastInputTime < 30 && !LongPress) {
-        return;
-    }
+                int finalX, finalY;
+                if (prevX == -1) { finalX = rawMappedX; finalY = rawMappedY; }
+                else {
+                    finalX = (prevX * 2 + rawMappedX) / 3;
+                    finalY = (prevY * 2 + rawMappedY) / 3;
+                }
+                prevX = finalX; prevY = finalY;
 
-    lastInputTime = millis();
+                touchPoint.x = finalX;
+                touchPoint.y = finalY;
+                touchPoint.pressed = true;
 
-    // ========================================================
-    // TOUCH
-    // ========================================================
-
-#if defined(HAS_TOUCH)
-
-    int x = 0;
-    int y = 0;
-
-    bool touching = readTouch(x, y);
-
-    // --------------------------------------------------------
-    // FINGER IS DOWN
-    // --------------------------------------------------------
-
-    if (touching) {
-
-        /*
-         * إذا الشاشة كانت مطفأة، أول لمسة فقط توقظ الشاشة.
-         */
-        if (!wakeUpScreen()) {
-
-            AnyKeyPress = true;
-
+                if (!wakeUpScreen()) AnyKeyPress = true;
+                else touchHeatMap(touchPoint);
+            }
+            d_tmp = millis();
         } else {
-
-            // -----------------------------------------------
-            // TOUCH POINT
-            // -----------------------------------------------
-
-            touchPoint.x = x;
-            touchPoint.y = y;
-            touchPoint.pressed = true;
-
-            /*
-             * touchHeatMap يعتمد على x/y لتوليد أزرار Bruce
-             * الافتراضية.
-             */
-            touchHeatMap(touchPoint);
-
+            prevX = -1; prevY = -1;
         }
-
-        wasTouching = true;
-
-    }
-
-    // --------------------------------------------------------
-    // FINGER RELEASED
-    // --------------------------------------------------------
-
-    else {
-
-        if (wasTouching) {
-
-            /*
-             * نرسل حالة release إلى touchPoint.
-             *
-             * touchHeatMap نفسه لا يعتمد على pressed،
-             * لذلك لا نستدعيه هنا حتى لا نولد ضغطة جديدة
-             * بعد رفع الإصبع.
-             */
-            touchPoint.pressed = false;
-
-            wasTouching = false;
-        }
-
-        /*
-         * تصفير الإحداثيات السابقة حتى تبدأ اللمسة التالية
-         * من قراءة جديدة بدون smoothing مع اللمسة السابقة.
-         */
-        lastTouchX = -1;
-        lastTouchY = -1;
-    }
-
 #endif
-
-    // ========================================================
-    // PHYSICAL BUTTON
-    // ========================================================
-
-#if defined(HAS_BTN)
-
-    if (digitalRead(ES3C28P_BTN_PIN) == ES3C28P_BTN_ACT) {
-
-        if (!wakeUpScreen()) {
-
-            AnyKeyPress = true;
-
-        } else {
-
-            SelPress = true;
-            AnyKeyPress = true;
-        }
     }
 
-#endif
-
-    // ========================================================
-    // POWER SAVE
-    // ========================================================
-
+#ifdef HAS_BTN
     checkPowerSaveTime();
-
-    // ========================================================
-    // REBOOT CHECK
-    // ========================================================
-
-    checkReboot();
+    if (digitalRead(ES3C28P_BTN_PIN) == ES3C28P_BTN_ACT) {
+        if (!wakeUpScreen()) AnyKeyPress = true;
+        SelPress = true;
+        long tmp = millis();
+        while ((millis() - tmp) < 200 && digitalRead(ES3C28P_BTN_PIN) == ES3C28P_BTN_ACT);
+    }
+#endif
 }
 
-// ============================================================
-// INPUT TASK
-// ============================================================
-
 void taskInputHandler(void *arg) {
-
-    (void)arg;
-
     while (true) {
-
         InputHandler();
-
         vTaskDelay(pdMS_TO_TICKS(30));
     }
 }
