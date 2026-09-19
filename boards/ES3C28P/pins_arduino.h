@@ -58,12 +58,12 @@ static const uint8_t SCL = 9;
 #define SPI_TOUCH_FREQUENCY 2500500
 
 #define HAS_SCREEN 1
-#define ROTATION 1 
+#define ROTATION 1
 #define MINBRIGHT 1
 #define BACKLIGHT -1
 
- #define HAS_TOUCH 1
- #define HAS_RESISTIVE_TOUCH 1
+#define HAS_TOUCH 1
+#define HAS_RESISTIVE_TOUCH 1
 
 // =============================================
 // NRF24L01 2.4GHz Radio (Safe Pins - No 5, 6, 16)
@@ -76,33 +76,41 @@ static const uint8_t SCL = 9;
 #define NRF24_MISO_PIN SPI_MISO_PIN
 
 // =============================================
-// Infrared (IR TX / RX) - (Excluding 5, 6, 16)
+// Infrared (IR TX / RX)
 // =============================================
 #define TXLED 36
 #define RXLED 35
 #define LED_ON HIGH
 #define LED_OFF LOW
 
-#define IR_TX_PINS {{"GPIO36", 36}, {"GPIO14", 14}, {"GPIO21", 21}}
-#define IR_RX_PINS {{"GPIO35", 35}, {"GPIO14", 14}, {"GPIO21", 21}}
+#define IR_TX_PINS {{"GPIO36", 36}}
+#define IR_RX_PINS {{"GPIO35", 35}}
 
 // =============================================
 // RF Pins Maps
 // =============================================
-#define RF_TX_PINS {{"GPIO4", 4}, {"GPIO14", 14}, {"GPIO21", 21}}
-#define RF_RX_PINS {{"GPIO7", 7}, {"GPIO14", 14}, {"GPIO21", 21}}
+#define RF_TX_PINS {{"GPIO36", 36}}
+#define RF_RX_PINS {{"GPIO35", 35}}
 
 // =============================================
-// Buttons & Battery
+// Buttons (5 أزرار: 4 اتجاهات + تأكيد)
 // =============================================
 #define HAS_BTN 1
-#define BTN_ALIAS "\"Boot\""
-#define BTN_PIN 0 
+#define BTN_ALIAS "\"OK\""
+#define BTN_PIN 0
 #define BTN_ACT LOW
-#define SEL_BTN 0 
 
-#define ANALOG_BAT_PIN 20
-#define ANALOG_BAT_MULTIPLIER 2.0f 
+#define SEL_BTN 0
+#define UP_BTN 20
+#define DW_BTN 21
+#define L_BTN 45
+#define R_BTN 48
+
+// =============================================
+// البطارية: معطّلة عمدًا وثابتة على 100% دايمًا
+// (تحرير GPIO20 للاستخدام كزر UP + تبسيط التوصيل)
+// =============================================
+// #define ANALOG_BAT_PIN 20   <-- ملغى عمدًا
 
 // =============================================
 // Serial & Deep Sleep
@@ -112,7 +120,7 @@ static const uint8_t SCL = 9;
 #define GPS_SERIAL_TX SERIAL_TX
 #define GPS_SERIAL_RX SERIAL_RX
 
-#define DEEPSLEEP_WAKEUP_PIN 0 
+#define DEEPSLEEP_WAKEUP_PIN 0
 #define DEEPSLEEP_PIN_ACT LOW
 
 #endif /* Pins_Arduino_h */
