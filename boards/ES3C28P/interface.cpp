@@ -1,7 +1,7 @@
 /*
  * ES3C28P - Board interface implementation for Bruce firmware
  *
- * هذا الملف مسؤول عن المنطق الخاص بالجهاز: الأزرار، البطارية، النوم، واللمس.
+ * هذا الملف مسؤول عن المنطق الخاص بالجهاز: الأزرار، اللمس، البطارية (ثابتة)، النوم.
  */
 
 #include "core/bus_HAL.h"
@@ -11,9 +11,6 @@
 #include <globals.h>
 #include <interface.h>
 #include <XPT2046_Touchscreen.h>
-
-#define ES3C28P_BTN_PIN 0
-#define ES3C28P_BTN_ACT LOW
 
 // قيم المعايرة الحقيقية والدقيقة المقاسة للشاشة
 #define TOUCH_MIN_X 480
@@ -28,6 +25,13 @@ static bool touchInitialized = false;
 void _setup_gpio() {
     Serial.begin(115200);
     Serial.println("CP1");
+
+    // الأزرار الخمسة - PULLUP داخلي، الضغط = LOW (BTN_ACT)
+    pinMode(SEL_BTN, INPUT_PULLUP);
+    pinMode(UP_BTN, INPUT_PULLUP);
+    pinMode(DW_BTN, INPUT_PULLUP);
+    pinMode(L_BTN, INPUT_PULLUP);
+    pinMode(R_BTN, INPUT_PULLUP);
 
     bruceConfigPins.irRx = (gpio_num_t)IR_RX_PIN;
     bruceConfigPins.irTx = (gpio_num_t)IR_TX_PIN;
@@ -47,27 +51,10 @@ void _post_setup_gpio() {
 #endif
 }
 
-int getBattery() {
-    static bool adcInitialized = false;
-    if (!adcInitialized) {
-        pinMode(ANALOG_BAT_PIN, INPUT);
-        analogSetAttenuation(ADC_11db);
-        adcInitialized = true;
-    }
+// البطارية ملغاة عمدًا - ثابتة دايمًا على 100% (تشغيل مستمر من مصدر خارجي)
+int getBattery() { return 100; }
 
-    uint32_t adcReading = analogReadMilliVolts(ANALOG_BAT_PIN);
-    float actualVoltage = (float)adcReading * 2.0f;
-
-    const float MIN_VOLTAGE = 2500.0f;
-    const float MAX_VOLTAGE = 4200.0f;
-
-    int percent = (int)(((actualVoltage - MIN_VOLTAGE) / (MAX_VOLTAGE - MIN_VOLTAGE)) * 100.0f);
-
-    if (percent < 0) percent = 0;
-    if (percent > 100) percent = 100;
-
-    return percent;
-}
+bool isCharging() { return false; }
 
 void _setBrightness(uint8_t brightval) {
     if (brightval == 0) {
@@ -80,49 +67,65 @@ void _setBrightness(uint8_t brightval) {
 
 void powerOff() {
     analogWrite(TFT_BL, 0);
-    esp_sleep_enable_ext0_wakeup((gpio_num_t)ES3C28P_BTN_PIN, ES3C28P_BTN_ACT);
+    esp_sleep_enable_ext0_wakeup((gpio_num_t)SEL_BTN, BTN_ACT);
     esp_deep_sleep_start();
 }
 
 void goToDeepSleep() { powerOff(); }
 
+// إطفاء بالضغط المطوّل على يسار + يمين مع بعض (نفس منطق smoochiee)
 void checkReboot() {
-    int c = 0;
-    while (digitalRead(ES3C28P_BTN_PIN) == ES3C28P_BTN_ACT) {
-        delay(100);
-        c++;
-        if (c > 20) {
-            powerOff();
+    int countDown = 0;
+    if (digitalRead(L_BTN) == BTN_ACT && digitalRead(R_BTN) == BTN_ACT) {
+        uint32_t time_count = millis();
+        while (digitalRead(L_BTN) == BTN_ACT && digitalRead(R_BTN) == BTN_ACT) {
+            if (millis() - time_count > 500) {
+                if (countDown == 0) {
+                    int textWidth = tft.textWidth("PWR OFF IN 3/3", 1);
+                    tft.fillRect(tftWidth / 2 - textWidth / 2, 7, textWidth, 18, bruceConfig.bgColor);
+                }
+                tft.setTextSize(1);
+                tft.setTextColor(bruceConfig.priColor, bruceConfig.bgColor);
+                countDown = (millis() - time_count) / 1000 + 1;
+                if (countDown < 4)
+                    tft.drawCentreString("PWR OFF IN " + String(countDown) + "/3", tftWidth / 2, 12, 1);
+                else {
+                    tft.fillScreen(bruceConfig.bgColor);
+                    while (digitalRead(L_BTN) == BTN_ACT || digitalRead(R_BTN) == BTN_ACT);
+                    delay(200);
+                    powerOff();
+                }
+                delay(10);
+            }
+        }
+        delay(30);
+        if (millis() - time_count > 500) {
+            tft.fillRect(60, 12, tftWidth - 60, tft.fontHeight(1), bruceConfig.bgColor);
+            drawStatusBar();
         }
     }
 }
 
-bool isCharging() { return false; }
-
-// معالجة مدخلات اللمس وتمريرها لنظام Bruce
+// معالجة مدخلات اللمس + الأزرار الخمسة معًا وتمريرها لنظام Bruce
 void InputHandler() {
     static long d_tmp = 0;
+    static unsigned long btn_tm = 0;
 
+    // ---------------- اللمس ----------------
     if (millis() - d_tmp > 150 || LongPress) {
 #ifdef HAS_TOUCH
         if (touchInitialized && ts.touched()) {
             TS_Point p = ts.getPoint();
 
-            // الفلترة بناءً على عتبة الضغط للحماية من اللمسات الوهمية
             if (p.z > TOUCH_Z_THRESHOLD) {
-
-                // 1. تحويل القراءات الخام (ADC) إلى مقاسات الشاشة الحقيقية بناءً على المعايرة
                 int mappedX = map(p.x, TOUCH_MIN_X, TOUCH_MAX_X, 0, TFT_WIDTH);
                 int mappedY = map(p.y, TOUCH_MIN_Y, TOUCH_MAX_Y, 0, TFT_HEIGHT);
 
-                // ضمان عدم خروج القيم عن نطاق أبعاد الشاشة
                 mappedX = constrain(mappedX, 0, TFT_WIDTH - 1);
                 mappedY = constrain(mappedY, 0, TFT_HEIGHT - 1);
 
-                // 2. ضبط اتجاه المحاور بناءً على تدوير الشاشة (ROTATION 1)
                 uint8_t rot = bruceConfigPins.rotation;
                 if (rot == 1) {
-                    // وضع LANDSCAPE العادي
                     touchPoint.x = mappedY;
                     touchPoint.y = TFT_WIDTH - mappedX;
                 } else if (rot == 3) {
@@ -139,7 +142,6 @@ void InputHandler() {
                     goto END_TOUCH;
                 }
 
-                // 3. إرسال النقاط المعايرة لخريطة Bruce الاستشعارية
                 touchPoint.pressed = true;
                 touchHeatMap(touchPoint);
             }
@@ -150,18 +152,47 @@ void InputHandler() {
 #endif
     }
 
-#ifdef HAS_BTN
-    checkPowerSaveTime();
-    if (digitalRead(ES3C28P_BTN_PIN) == ES3C28P_BTN_ACT) {
+    // ---------------- الأزرار الخمسة ----------------
+    if (millis() - btn_tm < 200 && !LongPress) return;
+
+    bool _u = digitalRead(UP_BTN);
+    bool _d = digitalRead(DW_BTN);
+    bool _l = digitalRead(L_BTN);
+    bool _r = digitalRead(R_BTN);
+    bool _s = digitalRead(SEL_BTN);
+
+    if (_u == BTN_ACT || _d == BTN_ACT || _l == BTN_ACT || _r == BTN_ACT || _s == BTN_ACT) {
+        btn_tm = millis();
         if (!wakeUpScreen()) AnyKeyPress = true;
-        SelPress = true;
-        long tmp = millis();
-        while ((millis() - tmp) < 200 && digitalRead(ES3C28P_BTN_PIN) == ES3C28P_BTN_ACT);
+        else return;
+    } else {
+        return;
     }
-#endif
+
+    if (_l == BTN_ACT) { PrevPress = true; }
+    if (_r == BTN_ACT) { NextPress = true; }
+    if (_u == BTN_ACT) {
+        UpPress = true;
+        PrevPagePress = true;
+    }
+    if (_d == BTN_ACT) {
+        DownPress = true;
+        NextPagePress = true;
+    }
+    if (_s == BTN_ACT) { SelPress = true; }
+    if (_l == BTN_ACT && _r == BTN_ACT) {
+        EscPress = true;
+        NextPress = false;
+        PrevPress = false;
+    }
+
+    checkPowerSaveTime();
 }
 
 void taskInputHandler(void *arg) {
+    // تأخير بسيط قبل بداية أول قراءة عشان نتفادى السباق مع تحميل الثيم/أنميشن البوت على SPI
+    vTaskDelay(pdMS_TO_TICKS(1500));
+
     while (true) {
         InputHandler();
         vTaskDelay(pdMS_TO_TICKS(30));
